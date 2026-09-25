@@ -3,43 +3,39 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>使い方・よくある質問｜__TITLE__｜yorozu-craft</title>
-  <meta name="description" content="__TITLE__の使い方、計算の根拠、よくある質問、ご利用上の注意。">
+  <title>テキスト変換ツール｜データの出どころ・ライセンス｜yorozu-craft</title>
+  <meta name="description" content="テキスト変換ツール（差分・JSON・CSV・全角半角）の仕様の出どころ、ライセンス、1 ファイル版、ご利用上の注意。">
   <meta name="robots" content="index, follow">
-  <link rel="canonical" href="https://yorozu-craft.com/__REPO__/guide.html">
+  <link rel="canonical" href="https://yorozu-craft.com/henkan/guide.html">
 
-  <meta property="og:title" content="使い方・よくある質問｜__TITLE__">
-  <meta property="og:description" content="__TITLE__の使い方、計算の根拠、よくある質問、ご利用上の注意。">
+  <meta property="og:title" content="テキスト変換ツール｜データの出どころ・ライセンス">
+  <meta property="og:description" content="テキスト変換ツール（差分・JSON・CSV・全角半角）の仕様の出どころ、ライセンス、1 ファイル版、ご利用上の注意。">
   <meta property="og:type" content="article">
-  <meta property="og:url" content="https://yorozu-craft.com/__REPO__/guide.html">
+  <meta property="og:url" content="https://yorozu-craft.com/henkan/guide.html">
   <meta property="og:site_name" content="yorozu-craft">
   <meta property="og:locale" content="ja_JP">
-  <meta property="og:image" content="https://yorozu-craft.com/__REPO__/og-image.png">
+  <meta property="og:image" content="https://yorozu-craft.com/henkan/og-image.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta name="twitter:card" content="summary_large_image">
 
-  <!-- よくある質問（下の #faq と内容をそろえる） -->
   <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    "mainEntity": [
-      {
-        "@type": "Question",
-        "name": "無料で使えますか？",
-        "acceptedAnswer": { "@type": "Answer", "text": "はい。会員登録やインストールも不要で、ブラウザだけで使えます。" }
-      },
-      {
-        "@type": "Question",
-        "name": "入力した内容はどこに保存されますか？",
-        "acceptedAnswer": { "@type": "Answer", "text": "お使いのブラウザの中にだけ保存され、外部のサーバーには送信されません。" }
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "ネットにつながっていなくても使えますか？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "使えます。1 ファイル版の henkan.html を保存しておけば、ダブルクリックで開いて使えます。一度開いたこのサイトのページも、オフライン対応でキャッシュから開けます。"
       }
-    ]
-  }
+    }
+  ]
+}
   </script>
 
-  <!-- Google AdSense（サイト所有確認 + 広告配信スクリプト） -->
   <meta name="google-adsense-account" content="ca-pub-5375267956079717">
   <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5375267956079717"
      crossorigin="anonymous"></script>
@@ -51,60 +47,59 @@
 <body>
 
   <header class="app-header">
-    <h1>__TITLE__ の使い方</h1>
-    <p class="subtitle">使い方・計算の根拠・よくある質問・ご利用上の注意</p>
+    <h1>テキスト変換 — 出どころとライセンス</h1>
+    <p class="subtitle">データの出どころ・ライセンス・ご利用上の注意</p>
   </header>
 
   <main class="app-main">
 
-    <p class="card" style="text-align:center"><a href="./">▶ __TITLE__ を使う</a></p>
+    <p class="card" style="text-align:center"><a href="./">▶ テキスト変換 を使う</a></p>
 
-    <article class="card content" id="howto">
-      <h2>使い方</h2>
-      <ol>
-        <li>（手順を書く）</li>
-      </ol>
+    <article class="card content" id="sources">
+      <h2>データの出どころとライセンス</h2>
+      <p>変換の規則は、次の公開の仕様から作りました（最終確認日 2026-09-25）。外部のデータやライブラリは使っていません。</p>
+      <details>
+        <summary>仕様と確かめたこと</summary>
+        <ul>
+          <li>RFC 4180「Common Format and MIME Type for CSV Files」（2005 年）2 章: 囲み・「""」・改行 — <a href="https://www.rfc-editor.org/rfc/rfc4180">rfc-editor.org/rfc/rfc4180</a></li>
+          <li>RFC 8259「The JSON Data Interchange Format」（2017 年）: 文法、6 章（数の精度）、8.1 章（BOM）— <a href="https://www.rfc-editor.org/rfc/rfc8259">rfc-editor.org/rfc/rfc8259</a></li>
+          <li>Unicode Standard Annex #15（Revision 58、Unicode 18.0.0）と UnicodeData.txt（18.0.0）: 全角・半角の分解の指定 — <a href="https://www.unicode.org/reports/tr15/">unicode.org/reports/tr15</a></li>
+          <li>WHATWG Encoding Standard: Shift_JIS の読み方 — <a href="https://encoding.spec.whatwg.org/">encoding.spec.whatwg.org</a></li>
+          <li>Microsoft Learn: Power Query の「Text/CSV」（UTF-8 と推定するのは BOM で始まるときだけ）— <a href="https://learn.microsoft.com/power-query/connectors/text-csv">learn.microsoft.com/power-query/connectors/text-csv</a>、Partner Center の資料（Excel で問題が出たら BOM 付きの UTF-8 で保存し直す）— <a href="https://learn.microsoft.com/ja-jp/partner-center/billing/use-the-reconciliation-files">learn.microsoft.com/ja-jp/partner-center/billing/use-the-reconciliation-files</a></li>
+          <li>差分: E. W. Myers "An O(ND) Difference Algorithm and Its Variations", Algorithmica 1 (1986)。コードは自分で書いています</li>
+        </ul>
+      </details>
+      <p>このツールのコードは MIT License です（<a href="https://github.com/YouheiOonuki/henkan">GitHub</a>）。</p>
     </article>
 
-    <!-- 制度・単価など時点のある値を使うツールだけ残す。値は constants.js、画面にも時点を出す -->
-    <article class="card content" id="basis">
-      <h2>根拠と確認日</h2>
-      <dl class="info-list">
-        <dt>根拠</dt>
-        <dd>（法令・公式ページの名前）</dd>
-        <dt>最終確認日</dt>
-        <dd><time datetime="__DATE__">__DATE_JA__</time></dd>
-      </dl>
-      <p class="small">制度や単価は変わることがあります。最終確認日から時間がたっている場合は、公式ページで最新の情報をご確認ください。</p>
+    <article class="card content" id="offline">
+      <h2>1 ファイル版（henkan.html）</h2>
+      <p>4 つの道具を 1 つの HTML にまとめたものです。<a href="./henkan.html" download="henkan.html">ダウンロード</a>してダブルクリックで開けます。広告・アクセス解析は入っておらず、外部への通信は Content-Security-Policy で禁止しています。</p>
     </article>
 
     <article class="card content" id="faq">
       <h2>よくある質問</h2>
       <dl class="faq">
-        <dt>無料で使えますか？</dt>
-        <dd>はい。会員登録やインストールも不要で、ブラウザだけで使えます。</dd>
-        <dt>入力した内容はどこに保存されますか？</dt>
-        <dd>お使いのブラウザの中にだけ保存され、外部のサーバーには送信されません。</dd>
+        <dt>ネットにつながっていなくても使えますか？</dt>
+        <dd>使えます。1 ファイル版の henkan.html を保存しておけば、ダブルクリックで開いて使えます。一度開いたこのサイトのページも、オフライン対応でキャッシュから開けます。</dd>
       </dl>
     </article>
 
-    <!-- README「ツールを追加するとき」8: ツール固有の注意・データの扱いはここに書く -->
     <article class="card content" id="notes">
       <h2>ご利用上の注意・データの扱い</h2>
       <ul>
-        <li><strong>保存されるデータ</strong>：（何をブラウザに保存するか。保存しないならそう書く）</li>
-        <li><strong>バックアップ</strong>：「ファイルに書き出す」で、（保存している内容）を JSON ファイルにできます。ファイルはこの端末の中で作り、どこにも送信しません。機種変更のときやブラウザのデータを消す前に書き出しておき、新しい端末ではファイルを移して「ファイルから読み込む」を押してください（今の内容はファイルの内容に置き換わります）。（ブラウザに保存しないツールではこの行を消す）</li>
-        <li><strong>共有リンク</strong>：（共有機能があれば、リンクに何が含まれるか。URL の「#」以降に入るのでサーバーには送信されない）</li>
-        <li><strong>結果の扱い</strong>：（計算結果は目安であること、最終的な確認先など）</li>
+        <li>貼り付けた文章やファイルは、この端末のブラウザの中だけで処理し、外部には送信しません。文章は保存しません。</li>
+        <li>設定はこの端末のブラウザ（localStorage、キー <code>henkan_settings</code>）にだけ保存され、外部には送信されません。書き出し・読み込み・消去はツールの画面のボタンから。</li>
+        <li>結果は元の文章と見比べてから使ってください。<a href="./guide.html">データの出どころとライセンス</a>もあわせてどうぞ。</li>
       </ul>
-      <p><a href="https://docs.google.com/forms/d/e/1FAIpQLSd8B90qh5lEIyr25iw1jOjdQjOyaPZ1_z2wMB4kH-EmEeJYWw/viewform?usp=pp_url&amp;entry.585564634=__REPO__" target="_blank" rel="noopener">ご要望・不具合の報告（Google フォーム）</a>：いただいた内容をもとに直します。お返事はしていません。</p>
+      <p><a href="https://docs.google.com/forms/d/e/1FAIpQLSd8B90qh5lEIyr25iw1jOjdQjOyaPZ1_z2wMB4kH-EmEeJYWw/viewform?usp=pp_url&amp;entry.585564634=henkan" target="_blank" rel="noopener">ご要望・不具合の報告（Google フォーム）</a>：いただいた内容をもとに直します。お返事はしていません。</p>
       <p>サイト全体の運営者情報・免責事項は<a href="../about.html">こちら</a>、プライバシーポリシーは<a href="../privacy-policy.html">こちら</a>です（すべてのツールで共通）。</p>
     </article>
 
     <article class="card content" id="changelog">
       <h2>更新履歴</h2>
       <ul>
-        <li><time datetime="__DATE__">__DATE_JA__</time> 公開</li>
+        <li><time datetime="2026-09-25">2026年9月25日</time> 公開</li>
       </ul>
     </article>
 
@@ -114,8 +109,8 @@
     <nav class="footer-nav" aria-label="フッターナビゲーション">
       <ul>
         <li><a href="../">yorozu-craft トップ</a></li>
-        <li><a href="./">__TITLE__</a></li>
-        <li><a href="./guide.html" aria-current="page">使い方・よくある質問</a></li>
+        <li><a href="./">テキスト変換</a></li>
+        <li><a href="./guide.html" aria-current="page">出どころ・ライセンス</a></li>
         <li><a href="../about.html">運営者情報</a></li>
         <li><a href="../privacy-policy.html">プライバシーポリシー</a></li>
       </ul>

@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JSON 整形ツールの使い方｜エラーの行と列・大きな数字｜yorozu-craft</title>
+  <meta name="description" content="JSON 整形・検証ツールの使い方。エラーの行と列の読み方、よくある誤り、大きな整数が丸められない理由、JSON から CSV への変換。">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://yorozu-craft.com/henkan/json/guide.html">
+
+  <meta property="og:title" content="JSON 整形ツールの使い方｜エラーの行と列・大きな数字">
+  <meta property="og:description" content="JSON 整形・検証ツールの使い方。エラーの行と列の読み方、よくある誤り、大きな整数が丸められない理由、JSON から CSV への変換。">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://yorozu-craft.com/henkan/json/guide.html">
+  <meta property="og:site_name" content="yorozu-craft">
+  <meta property="og:locale" content="ja_JP">
+  <meta property="og:image" content="https://yorozu-craft.com/henkan/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+
+  <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "JSON のエラーの場所がわかりません",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "誤りのある行と、その行の何文字目かを日本語の理由と一緒に出します。前の 2 行と位置の印（^）も出るので、最後のカンマや引用符の閉じ忘れを見つけやすくなります。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "JSON の大きな数字が変わる（丸められる）のはなぜですか？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "JavaScript の数は倍精度のため、およそ 9007 兆を超える整数は丸められます。このツールは数を書いてあったとおりに出すので、ID などの長い整数も変わりません。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "JSON を CSV にして Excel で開けますか？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "はい。出力の形で「CSV にする」を選び、「BOM を付ける」をオンにして保存すると、Excel で文字化けせずに開けます。"
+      }
+    }
+  ]
+}
+  </script>
+
+  <meta name="google-adsense-account" content="ca-pub-5375267956079717">
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5375267956079717"
+     crossorigin="anonymous"></script>
+
+  <link rel="icon" href="../favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="../apple-touch-icon.png">
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+
+  <header class="app-header">
+    <h1>JSON 整形の使い方</h1>
+    <p class="subtitle">使い方・しくみ・よくある質問・ご利用上の注意</p>
+  </header>
+
+  <main class="app-main">
+
+    <p class="card" style="text-align:center"><a href="./">▶ JSON 整形 を使う</a></p>
+
+    <article class="card content" id="howto">
+      <h2>JSON 整形の使い方</h2>
+      <ol>
+        <li>JSON を貼る（ファイルを開く・ドロップも可）</li>
+        <li>正しければ整えた形が、誤りがあれば行・列と理由が出る</li>
+        <li>出力の形（整形・1 行に詰める・CSV にする）を選ぶ</li>
+        <li>コピーするか、ファイルに保存する</li>
+      </ol>
+    </article>
+
+    <article class="card content" id="error">
+      <h2>JSON のエラーの行と列</h2>
+      <p>行は改行で数え、列はその行の何文字目か（全角も絵文字も 1 字）です。「入力欄のその位置へ」で誤りの字を選べます。</p>
+      <details>
+        <summary>よくある誤りと、出る理由</summary>
+        <ul>
+          <li>最後の要素の後ろのカンマ <code>[1, 2,]</code>: 「「]」の前に余分な「,」があります」</li>
+          <li>シングルクォート <code>{'a': 1}</code>・引用符の無い名前 <code>{a: 1}</code>・コメント <code>// …</code></li>
+          <li>0 で始まる数 <code>0123</code>・<code>NaN</code>・<code>True</code>（大文字）</li>
+          <li>文字列の中の改行・タブ（<code>\n</code>・<code>\t</code> と書く）</li>
+          <li>全角の「：」「，」・全角スペース</li>
+        </ul>
+        <p>文法は RFC 8259（2017 年）に合わせています。先頭の BOM は読み飛ばして、その旨を出します。</p>
+      </details>
+    </article>
+
+    <article class="card content" id="numbers">
+      <h2>数と文字列は書いたとおりに残す</h2>
+      <p>整形しても、数と文字列は 1 文字も変えません。空白と改行（と、選べば名前の順）だけを変えます。</p>
+      <details>
+        <summary>くわしく</summary>
+        <p>JavaScript の JSON.parse を通すと、<code>12345678901234567890</code> は <code>12345678901234567000</code> に、<code>1.10</code> は <code>1.1</code> に、<code>"\u3042"</code> は <code>"あ"</code> になります。RFC 8259 の 6 章は、数の精度は読む側の実装しだいで、整数が一致すると言えるのは ±(2<sup>53</sup>−1) の範囲だとしています。このツールは自前の読み取りで、書いてあった文字をそのまま出します。この範囲を超える整数があるときは、結果の下に書きます。</p>
+        <p>CSV にするとき: 一番外が配列で、要素がオブジェクトなら名前を列にします（出てきた順）。入れ子のオブジェクトは「親.子」の列に、配列は JSON のまま 1 つのセルに入れます。</p>
+      </details>
+    </article>
+
+    <article class="card content" id="faq">
+      <h2>よくある質問</h2>
+      <dl class="faq">
+        <dt>JSON のエラーの場所がわかりません</dt>
+        <dd>誤りのある行と、その行の何文字目かを日本語の理由と一緒に出します。前の 2 行と位置の印（^）も出るので、最後のカンマや引用符の閉じ忘れを見つけやすくなります。</dd>
+        <dt>JSON の大きな数字が変わる（丸められる）のはなぜですか？</dt>
+        <dd>JavaScript の数は倍精度のため、およそ 9007 兆を超える整数は丸められます。このツールは数を書いてあったとおりに出すので、ID などの長い整数も変わりません。</dd>
+        <dt>JSON を CSV にして Excel で開けますか？</dt>
+        <dd>はい。出力の形で「CSV にする」を選び、「BOM を付ける」をオンにして保存すると、Excel で文字化けせずに開けます。</dd>
+      </dl>
+    </article>
+
+    <article class="card content" id="notes">
+      <h2>ご利用上の注意・データの扱い</h2>
+      <ul>
+        <li>貼り付けた文章やファイルは、この端末のブラウザの中だけで処理し、外部には送信しません。文章は保存しません。</li>
+        <li>設定はこの端末のブラウザ（localStorage、キー <code>henkan_settings</code>）にだけ保存され、外部には送信されません。書き出し・読み込み・消去はツールの画面のボタンから。</li>
+        <li>結果は元の文章と見比べてから使ってください。<a href="../guide.html">データの出どころとライセンス</a>もあわせてどうぞ。</li>
+      </ul>
+      <p><a href="https://docs.google.com/forms/d/e/1FAIpQLSd8B90qh5lEIyr25iw1jOjdQjOyaPZ1_z2wMB4kH-EmEeJYWw/viewform?usp=pp_url&amp;entry.585564634=henkan" target="_blank" rel="noopener">ご要望・不具合の報告（Google フォーム）</a>：いただいた内容をもとに直します。お返事はしていません。</p>
+      <p>サイト全体の運営者情報・免責事項は<a href="../../about.html">こちら</a>、プライバシーポリシーは<a href="../../privacy-policy.html">こちら</a>です（すべてのツールで共通）。</p>
+    </article>
+
+    <article class="card content" id="changelog">
+      <h2>更新履歴</h2>
+      <ul>
+        <li><time datetime="2026-09-25">2026年9月25日</time> 公開</li>
+      </ul>
+    </article>
+
+  </main>
+
+  <footer class="app-footer">
+    <nav class="footer-nav" aria-label="フッターナビゲーション">
+      <ul>
+        <li><a href="../../">yorozu-craft トップ</a></li>
+        <li><a href="../">テキスト変換</a></li>
+        <li><a href="./">JSON 整形</a></li>
+        <li><a href="./guide.html" aria-current="page">使い方・よくある質問</a></li>
+        <li><a href="../../about.html">運営者情報</a></li>
+        <li><a href="../../privacy-policy.html">プライバシーポリシー</a></li>
+      </ul>
+    </nav>
+    <p>&copy; 2026 yorozu-craft. All rights reserved.</p>
+  </footer>
+
+  <!-- Cloudflare Web Analytics（Cookie を使わないアクセス解析） --><script type='module' src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "b79bf821e1fd4b6683866d493b1de426"}'></script><!-- End Cloudflare Web Analytics -->
+</body>
+</html>

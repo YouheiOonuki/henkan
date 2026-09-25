@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CSV 整形・変換ツールの使い方｜Excel の文字化けと BOM｜yorozu-craft</title>
+  <meta name="description" content="CSV 整形・変換ツールの使い方。RFC 4180 の形、区切りの自動判定、Shift_JIS、Excel で文字化けしない BOM、CSV から JSON への変換。">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://yorozu-craft.com/henkan/csv/guide.html">
+
+  <meta property="og:title" content="CSV 整形・変換ツールの使い方｜Excel の文字化けと BOM">
+  <meta property="og:description" content="CSV 整形・変換ツールの使い方。RFC 4180 の形、区切りの自動判定、Shift_JIS、Excel で文字化けしない BOM、CSV から JSON への変換。">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://yorozu-craft.com/henkan/csv/guide.html">
+  <meta property="og:site_name" content="yorozu-craft">
+  <meta property="og:locale" content="ja_JP">
+  <meta property="og:image" content="https://yorozu-craft.com/henkan/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+
+  <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "CSV を Excel で開くと文字化けします",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "UTF-8 の CSV を Excel で開くと化けることがあります。このツールで開き直し、「BOM を付ける」をオンのまま保存すると、Excel でそのまま開けます。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "CSV を JSON に変換できますか？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "はい。出力の形で「JSON にする」を選ぶと、1 行目を名前にしたオブジェクトの配列になります。数字は既定で文字のまま、郵便番号などの先頭の 0 も残ります。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "セルの中の改行やカンマはどうなりますか？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "「\"」で囲まれていれば、1 つのセルとして読みます。書き出すときも、改行・カンマ・「\"」を含むセルは「\"」で囲みます。"
+      }
+    }
+  ]
+}
+  </script>
+
+  <meta name="google-adsense-account" content="ca-pub-5375267956079717">
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5375267956079717"
+     crossorigin="anonymous"></script>
+
+  <link rel="icon" href="../favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="../apple-touch-icon.png">
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+
+  <header class="app-header">
+    <h1>CSV 整形・変換の使い方</h1>
+    <p class="subtitle">使い方・しくみ・よくある質問・ご利用上の注意</p>
+  </header>
+
+  <main class="app-main">
+
+    <p class="card" style="text-align:center"><a href="./">▶ CSV 整形 を使う</a></p>
+
+    <article class="card content" id="howto">
+      <h2>CSV 整形・変換の使い方</h2>
+      <ol>
+        <li>CSV を貼る（ファイルを開く・ドロップも可。Shift_JIS も読める）</li>
+        <li>区切りが自動で決まり、表の見本と行・列の数が出る</li>
+        <li>出力の形（CSV に整える・JSON にする）を選ぶ</li>
+        <li>コピーするか、ファイルに保存する（Excel 用の BOM は既定でオン）</li>
+      </ol>
+    </article>
+
+    <article class="card content" id="format">
+      <h2>CSV の形（RFC 4180）</h2>
+      <p>書き出しは RFC 4180（2005 年）の形です。区切り・「"」・改行を含むセルだけ「"」で囲み、中の「"」は「""」にします。</p>
+      <details>
+        <summary>くわしく</summary>
+        <ul>
+          <li>読むときは RFC より広く受け入れます: 改行は CRLF・LF・CR、区切りはカンマ・タブ・セミコロン・縦棒。囲まれていないセルの中の「"」は文字として読み、注意を出します</li>
+          <li>区切りの自動判定: 先頭 100 行を 4 つの候補で読み、列の数がいちばんそろうものを選びます</li>
+          <li>先頭と末尾に空白があるセルも「"」で囲みます（読む側に空白を削られないように）</li>
+          <li>文字コード: ファイルは UTF-8 として読み、読めなければ Shift_JIS として読みます（WHATWG Encoding Standard の shift_jis）</li>
+          <li>JSON にするとき: 1 行目を名前にします。空の名前は「列3」、重なった名前は「名前_2」。数にするのは 0 で始まらない整数と小数だけで、郵便番号の 0 は落としません</li>
+        </ul>
+      </details>
+    </article>
+
+    <article class="card content" id="bom">
+      <h2>Excel で文字化けしない CSV（BOM）</h2>
+      <p>保存するときに、UTF-8 の目印（BOM、先頭の 3 バイト EF BB BF）を付けます。Microsoft の資料も、Excel で CSV の文字コードの問題が出たら BOM 付きの UTF-8 で保存し直すよう案内しています。</p>
+      <details>
+        <summary>くわしく</summary>
+        <p>Microsoft Learn の Partner Center の資料「Excel での CSV エンコードの問題を修正する」は、英語以外の環境で問題が出たら、メモ帳で「BOM 付きの UTF-8」で保存し直してから Excel で開く手順を案内しています。Power Query（Excel の「データの取得」）の資料には、UTF-8 と推定するのはファイルが BOM で始まるときだけとあります（どちらも 2026-09-25 に確認）。BOM を嫌うプログラムに渡すときは、オフにして保存してください。コピーした文字には BOM は付きません。Microsoft Excel は Microsoft の商標です。このツールは Microsoft とは関係ありません。</p>
+      </details>
+    </article>
+
+    <article class="card content" id="faq">
+      <h2>よくある質問</h2>
+      <dl class="faq">
+        <dt>CSV を Excel で開くと文字化けします</dt>
+        <dd>UTF-8 の CSV を Excel で開くと化けることがあります。このツールで開き直し、「BOM を付ける」をオンのまま保存すると、Excel でそのまま開けます。</dd>
+        <dt>CSV を JSON に変換できますか？</dt>
+        <dd>はい。出力の形で「JSON にする」を選ぶと、1 行目を名前にしたオブジェクトの配列になります。数字は既定で文字のまま、郵便番号などの先頭の 0 も残ります。</dd>
+        <dt>セルの中の改行やカンマはどうなりますか？</dt>
+        <dd>「"」で囲まれていれば、1 つのセルとして読みます。書き出すときも、改行・カンマ・「"」を含むセルは「"」で囲みます。</dd>
+      </dl>
+    </article>
+
+    <article class="card content" id="notes">
+      <h2>ご利用上の注意・データの扱い</h2>
+      <ul>
+        <li>貼り付けた文章やファイルは、この端末のブラウザの中だけで処理し、外部には送信しません。文章は保存しません。</li>
+        <li>設定はこの端末のブラウザ（localStorage、キー <code>henkan_settings</code>）にだけ保存され、外部には送信されません。書き出し・読み込み・消去はツールの画面のボタンから。</li>
+        <li>結果は元の文章と見比べてから使ってください。<a href="../guide.html">データの出どころとライセンス</a>もあわせてどうぞ。</li>
+      </ul>
+      <p><a href="https://docs.google.com/forms/d/e/1FAIpQLSd8B90qh5lEIyr25iw1jOjdQjOyaPZ1_z2wMB4kH-EmEeJYWw/viewform?usp=pp_url&amp;entry.585564634=henkan" target="_blank" rel="noopener">ご要望・不具合の報告（Google フォーム）</a>：いただいた内容をもとに直します。お返事はしていません。</p>
+      <p>サイト全体の運営者情報・免責事項は<a href="../../about.html">こちら</a>、プライバシーポリシーは<a href="../../privacy-policy.html">こちら</a>です（すべてのツールで共通）。</p>
+    </article>
+
+    <article class="card content" id="changelog">
+      <h2>更新履歴</h2>
+      <ul>
+        <li><time datetime="2026-09-25">2026年9月25日</time> 公開</li>
+      </ul>
+    </article>
+
+  </main>
+
+  <footer class="app-footer">
+    <nav class="footer-nav" aria-label="フッターナビゲーション">
+      <ul>
+        <li><a href="../../">yorozu-craft トップ</a></li>
+        <li><a href="../">テキスト変換</a></li>
+        <li><a href="./">CSV 整形</a></li>
+        <li><a href="./guide.html" aria-current="page">使い方・よくある質問</a></li>
+        <li><a href="../../about.html">運営者情報</a></li>
+        <li><a href="../../privacy-policy.html">プライバシーポリシー</a></li>
+      </ul>
+    </nav>
+    <p>&copy; 2026 yorozu-craft. All rights reserved.</p>
+  </footer>
+
+  <!-- Cloudflare Web Analytics（Cookie を使わないアクセス解析） --><script type='module' src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "b79bf821e1fd4b6683866d493b1de426"}'></script><!-- End Cloudflare Web Analytics -->
+</body>
+</html>
