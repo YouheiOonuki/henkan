@@ -1,0 +1,3408 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; worker-src blob:; connect-src 'none'; form-action 'none'; base-uri 'none'">
+<meta name="robots" content="noindex">
+<title>テキスト変換（通信しない 1 ファイル版）｜yorozu-craft</title>
+<!-- テキスト差分・JSON 整形・CSV 整形・全角半角かな変換。https://yorozu-craft.com/henkan/ の 1 ファイル版（MIT License、Youhei Oonuki）。
+     このファイルは外部と通信しません（上の Content-Security-Policy で禁止）。ビルド: node build.mjs -->
+<style>
+/* ===========================
+   テキスト変換（henkan） — yorozu-craft 共通の和紙風の配色
+   色はトークン（--bg / --card / --text / --muted / --accent / --border）だけを使う。
+   ダークモードは端末の設定に自動で合わせる（prefers-color-scheme。手動切替は付けない）
+   =========================== */
+:root {
+  color-scheme: light dark;
+  --bg: #f0ebe0;
+  --bg-2: #e6dfd0;
+  --card: #faf6ee;
+  --text: #3a3025;
+  --muted: #6e604f;
+  --accent: #8b4513;
+  --accent-soft: #f3e6d8;
+  --border: #cfc0a0;
+  --shadow: rgba(58, 48, 37, 0.12);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1c1814;
+    --bg-2: #25201a;
+    --card: #2b251e;
+    --text: #ece4d6;
+    --muted: #b9ab96;
+    --accent: #e0a066;
+    --accent-soft: #3a2e22;
+    --border: #4a3f33;
+    --shadow: rgba(0, 0, 0, 0.4);
+  }
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+[hidden] { display: none !important; }
+
+body {
+  /* README「ツールを追加するとき」9: 端末のフォント。Web フォントは読まない */
+  font-family: "Noto Sans JP", "Noto Sans CJK JP", "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.7;
+}
+
+a { color: var(--accent); }
+
+/* ヘッダー */
+.app-header {
+  text-align: center;
+  padding: 1.4rem 1rem 1.1rem;
+  background: var(--bg-2);
+  border-bottom: 2px solid var(--border);
+}
+.app-header h1 { font-size: 1.45rem; color: var(--accent); line-height: 1.4; }
+.app-header .subtitle { font-size: 0.88rem; color: var(--muted); margin-top: 0.3rem; }
+
+/* レイアウト */
+.app-main { max-width: 680px; margin: 0 auto; padding: 1rem; }
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.2rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 2px 8px var(--shadow);
+}
+.card h2 {
+  font-size: 1.02rem;
+  color: var(--accent);
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0.4rem;
+  margin-bottom: 0.9rem;
+}
+
+/* 入力 */
+.field { margin-bottom: 1rem; }
+.field label { display: block; font-weight: 600; font-size: 0.95rem; margin-bottom: 0.25rem; }
+.field .hint { font-size: 0.8rem; color: var(--muted); margin-bottom: 0.4rem; }
+.field input[type="number"], .field input[type="text"], .field select {
+  width: 100%;
+  max-width: 16rem;
+  padding: 0.45rem 0.5rem;
+  font-size: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--card);
+  color: var(--text);
+}
+
+.btn {
+  display: inline-block;
+  padding: 0.5rem 1.1rem;
+  border: none;
+  border-radius: 6px;
+  background: var(--accent);
+  color: var(--card);
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+a.btn, a.btn-sub { text-decoration: none; }
+a.btn-sub { display: inline-flex; align-items: center; }
+
+/* 読みもの（guide.html） */
+.content h3 { font-size: 0.95rem; margin: 1rem 0 0.3rem; }
+.content p, .content li { font-size: 0.9rem; }
+.content p + p { margin-top: 0.5rem; }
+.content ul, .content ol { padding-left: 1.3rem; margin: 0.3rem 0; }
+.faq dt { font-weight: 600; margin-top: 0.9rem; font-size: 0.92rem; }
+.faq dt::before { content: 'Q. '; color: var(--accent); }
+.faq dd { font-size: 0.88rem; color: var(--muted); padding: 0.2rem 0 0.5rem 1.2rem; border-bottom: 1px solid var(--border); }
+.info-list { display: grid; grid-template-columns: max-content 1fr; gap: 0.4rem 1.2rem; font-size: 0.9rem; }
+.info-list dt { font-weight: 600; }
+.info-list dd { color: var(--muted); }
+.small { font-size: 0.8rem; color: var(--muted); margin-top: 0.4rem; }
+
+/* フッター */
+.app-footer {
+  text-align: center;
+  padding: 1rem;
+  font-size: 0.78rem;
+  color: var(--muted);
+  border-top: 1px solid var(--border);
+  margin-top: 0.5rem;
+}
+.footer-nav ul { list-style: none; display: flex; justify-content: center; flex-wrap: wrap; gap: 0.4rem 1.1rem; margin-bottom: 0.6rem; }
+.footer-nav a { color: var(--muted); text-decoration: none; }
+.footer-nav a:hover, .footer-nav a[aria-current="page"] { color: var(--accent); }
+
+@media (max-width: 480px) {
+  .app-header h1 { font-size: 1.2rem; }
+}
+
+/* ===========================
+   画面の骨組み（yorozu-plans の docs/SCREEN.md。README「ツールを追加するとき」25）
+   必須の入力（fieldset.req）→ 結果（.result-card）→ くわしく入れる（details.opt）、上端の固定バー、PC の 2 カラム
+   seido-keisan/nenmatsu と gakushu-print の試験（2026-09-24）から取り出したもの
+   =========================== */
+fieldset.card { min-width: 0; }
+.req legend {
+  float: left; width: 100%;   /* legend を枠の上に載せず、h2 と同じ見た目で枠の中に置く */
+  font-size: 1.02rem; font-weight: 700; color: var(--accent);
+  border-bottom: 1px solid var(--border); padding-bottom: 0.4rem; margin-bottom: 0.9rem;
+}
+.req legend + * { clear: both; }
+
+/* 結果: 大きな数字 1 つ＋ 1 行。内訳は details.rels */
+.result-card { scroll-margin-top: 56px; }   /* 固定バー（44px）で見出しが隠れないように */
+.result-card:focus { outline: none; }
+.result-big { font-size: 1.8rem; font-weight: 700; color: var(--accent); line-height: 1.3; }
+.result-sub { font-size: 0.9rem; color: var(--muted); }
+details.rels > summary { cursor: pointer; min-height: 44px; padding: 0.55rem 0; list-style: none; color: var(--accent); font-size: 0.92rem; }
+details.rels > summary::-webkit-details-marker { display: none; }
+details.rels > summary::before { content: '▸'; margin-right: 0.4rem; }
+details.rels[open] > summary::before { content: '▾'; }
+
+/* くわしく入れる（1 グループ 1 つの details）。summary の .opt-state に今の状態を出す（screen.js の detailsSummary） */
+details.card.opt { padding: 0 1.2rem; margin-bottom: 0.6rem; }
+details.card.opt > summary {
+  cursor: pointer; display: block; min-height: 44px; padding: 0.6rem 0;
+  color: var(--accent); font-weight: 600; font-size: 0.95rem; list-style: none;
+}
+details.card.opt > summary::-webkit-details-marker { display: none; }
+details.card.opt > summary::before { content: '▸'; margin-right: 0.4rem; }
+details.card.opt[open] > summary::before { content: '▾'; }
+details.card.opt[open] { padding-bottom: 0.9rem; }
+details.card.opt[open] > summary { border-bottom: 1px solid var(--border); margin-bottom: 0.9rem; }
+details > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.opt-state { color: var(--text); font-weight: normal; }
+.btn-row { display: flex; flex-wrap: wrap; gap: 0.6rem; margin: 0.6rem 0; }   /* ボタンの間隔（SCREEN.md 5 章。4 章の上下 12px 以上は margin で） */
+.btn-row .btn { min-height: 44px; }
+
+/* 固定バー（SCREEN.md 0 章の 3・D59）: 上端に 1 行、高さ 44px。下端は AdSense のアンカー広告が使う。
+   読み込み時は hidden（screen.js が出し入れする。fixed なのでレイアウトはずれない） */
+.fixbar {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 50; height: 44px;
+  background: var(--card); border-bottom: 2px solid var(--accent); box-shadow: 0 2px 8px var(--shadow);
+}
+.fixbar a, .fixbar button {
+  display: block; width: 100%; max-width: 720px; margin: 0 auto; padding: 0 1rem; height: 42px; line-height: 42px; text-align: center;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font: inherit; font-weight: 700;
+  color: var(--accent); background: none; border: none; text-decoration: none; cursor: pointer;
+}
+.fixbar a:focus-visible, .fixbar button:focus-visible { outline: 2px solid var(--accent); outline-offset: -3px; }
+
+/* PC（900px 以上）の 2 カラム（D63: 制度の計算機だけ）。<main class="app-main layout-2col"> にすると、
+   左に入力・右に結果（sticky）。結果が常に見えるので、固定バーに fixbar-narrow も付けて PC では出さない */
+@media (min-width: 900px) {
+  .fixbar-narrow { display: none !important; }
+  .layout-2col { max-width: 1120px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 26rem); column-gap: 1.2rem; align-items: start; }
+  .layout-2col > *, .layout-2col > form > * { grid-column: 1; }
+  .layout-2col > form { display: contents; }
+  .layout-2col .result-card { grid-column: 2; grid-row: 1 / span 30; position: sticky; top: 1rem; max-height: calc(100vh - 2rem); overflow-y: auto; }
+}
+
+@media print {
+  .fixbar, .no-print { display: none !important; }
+  /* 印刷では折りたたみの中も出す（途中の計算・入れた値を紙に残す） */
+  main details::details-content { content-visibility: visible; display: block; }
+  main details > summary::before { content: none; }
+  .layout-2col { display: block; }
+  .layout-2col .result-card { position: static; max-height: none; overflow: visible; }
+  /* 広告は印刷に出さない（gakushu-print と同じ） */
+  ins.adsbygoogle, .google-auto-placed, iframe[id^="aswift"], iframe[id^="google_ads"] { display: none !important; }
+}
+
+/* ===========================
+   テキスト変換（henkan）の部品
+   =========================== */
+.app-main.app-wide { max-width: 1100px; }
+:root { --del-bg: #f6d5cf; --del-strong: #e8a295; --ins-bg: #d6ecd2; --ins-strong: #9fd097; --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Noto Sans Mono CJK JP", monospace; }
+@media (prefers-color-scheme: dark) {
+  :root { --del-bg: #4a2620; --del-strong: #7a3a2e; --ins-bg: #23401f; --ins-strong: #37652f; }
+}
+textarea.io {
+  display: block; width: 100%; min-height: 8rem; resize: vertical;
+  padding: 0.5rem 0.6rem; font: 0.9rem/1.5 var(--mono);
+  border: 1px solid var(--border); border-radius: 6px; background: var(--card); color: var(--text);
+  tab-size: 4;
+}
+textarea.io.out { background: var(--bg); }
+textarea.io.drop { outline: 3px dashed var(--accent); }
+.pair { display: grid; gap: 0 1rem; }
+@media (min-width: 760px) { .pair { grid-template-columns: 1fr 1fr; } }
+.pair .field { margin-bottom: 0.6rem; }
+.label-row { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.25rem; }
+.label-row label { margin: 0 !important; }
+.btn-sub {
+  display: inline-block; min-height: 36px; padding: 0.3rem 0.8rem; font: inherit; font-size: 0.85rem;
+  border: 1px solid var(--accent); border-radius: 6px; background: var(--card); color: var(--accent); cursor: pointer;
+}
+.btn-sub:focus-visible, .seg input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
+.btn-reset { background: var(--muted); }
+fieldset.plain { border: none; margin: 0 0 0.8rem; min-width: 0; }
+fieldset.plain legend { font-weight: 600; font-size: 0.92rem; margin-bottom: 0.2rem; }
+.inline-check { display: flex; align-items: center; gap: 0.45rem; min-height: 36px; font-size: 0.92rem; cursor: pointer; }
+.inline-check input { width: 1.15rem; height: 1.15rem; accent-color: var(--accent); flex: none; }
+.view-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 1.2rem; margin: 0.6rem 0; }
+.seg { display: inline-flex; border: 1px solid var(--accent); border-radius: 6px; overflow: hidden; }
+.seg label { display: flex; align-items: center; gap: 0.3rem; padding: 0 0.7rem; min-height: 38px; font-size: 0.88rem; cursor: pointer; }
+.seg label + label { border-left: 1px solid var(--accent); }
+.seg input { accent-color: var(--accent); }
+.seg label:has(input:checked) { background: var(--accent-soft); font-weight: 600; }
+.select-row { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; }
+.select-row .field { margin-bottom: 0.4rem; }
+.field select.wide { max-width: 100%; }
+
+/* 差分の表 */
+.diff-scroll { overflow-x: auto; border: 1px solid var(--border); border-radius: 6px; margin-top: 0.4rem; }
+table.diff { width: 100%; border-collapse: collapse; table-layout: fixed; font: 0.82rem/1.45 var(--mono); }
+table.diff col.n { width: 3.2em; }
+table.diff col.s { width: 1.5em; }
+table.diff th { font: 600 0.78rem/1.4 inherit; font-family: inherit; text-align: left; color: var(--muted); background: var(--bg-2); padding: 0.2rem 0.4rem; }
+table.diff td { padding: 0.05rem 0.4rem; vertical-align: top; white-space: pre-wrap; word-break: break-all; overflow-wrap: anywhere; }
+table.diff td.n { color: var(--muted); text-align: right; user-select: none; font-size: 0.75rem; }
+table.diff td.s { color: var(--muted); user-select: none; text-align: center; }
+table.diff td.del { background: var(--del-bg); }
+table.diff td.ins { background: var(--ins-bg); }
+table.diff td.none { background: var(--bg-2); }
+table.diff tr.fold td { text-align: center; color: var(--muted); background: var(--bg-2); font-size: 0.78rem; }
+table.diff.split td.c:nth-child(2) { border-right: 1px solid var(--border); }
+del, ins { text-decoration: none; border-radius: 2px; }
+del { background: var(--del-strong); text-decoration: line-through; text-decoration-color: rgba(0,0,0,0.35); }
+ins { background: var(--ins-strong); }
+pre.char { white-space: pre-wrap; word-break: break-all; overflow-wrap: anywhere; font: 0.9rem/1.7 var(--mono); background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 0.5rem 0.6rem; max-height: 70vh; overflow-y: auto; }
+.char-split { display: grid; gap: 0.6rem; }
+@media (min-width: 760px) { .char-split { grid-template-columns: 1fr 1fr; } }
+.more { text-align: center; margin-top: 0.5rem; }
+.diff-out { margin-top: 0.3rem; }
+
+/* 結果の中の注意・表 */
+.notes { margin: 0.5rem 0 0; padding-left: 1.2rem; font-size: 0.85rem; }
+.notes li { margin: 0.15rem 0; }
+.err-box { margin-top: 0.5rem; padding: 0.5rem 0.7rem; border-left: 4px solid var(--del-strong); background: var(--del-bg); border-radius: 4px; font-size: 0.9rem; }
+.err-box pre { font: 0.82rem/1.5 var(--mono); white-space: pre; overflow-x: auto; margin-top: 0.4rem; }
+.preview { overflow: auto; max-height: 60vh; border: 1px solid var(--border); border-radius: 6px; margin: 0.5rem 0; }
+.preview table { border-collapse: collapse; font-size: 0.82rem; }
+.preview th, .preview td { border: 1px solid var(--border); padding: 0.15rem 0.45rem; text-align: left; vertical-align: top; white-space: pre-wrap; max-width: 18rem; overflow-wrap: anywhere; }
+.preview thead th { background: var(--bg-2); position: sticky; top: 0; }
+.preview td.rn, .preview th.rn { color: var(--muted); background: var(--bg-2); text-align: right; }
+.pairs { columns: 2 12rem; font-size: 0.85rem; list-style: none; padding: 0; }
+.pairs li { break-inside: avoid; font-family: var(--mono); }
+
+/* 入口（index.html）の一覧 */
+.tool-list { list-style: none; display: grid; gap: 0.8rem; margin-bottom: 1rem; }
+@media (min-width: 640px) { .tool-list { grid-template-columns: 1fr 1fr; } }
+.tool-list a { display: block; height: 100%; padding: 0.9rem 1rem; border: 1px solid var(--border); border-radius: 8px; background: var(--card); text-decoration: none; color: var(--text); box-shadow: 0 2px 8px var(--shadow); }
+.tool-list a strong { color: var(--accent); font-size: 1.02rem; display: block; margin-bottom: 0.2rem; }
+.tool-list a span { font-size: 0.85rem; color: var(--muted); }
+
+/* 1 ファイル版のタブ */
+.tabs { display: flex; flex-wrap: wrap; gap: 0.4rem; max-width: 1100px; margin: 0.8rem auto 0; padding: 0 1rem; }
+.tabs button { min-height: 40px; padding: 0.3rem 0.9rem; font: inherit; font-size: 0.9rem; border: 1px solid var(--border); border-radius: 6px 6px 0 0; background: var(--bg-2); color: var(--text); cursor: pointer; }
+.tabs button[aria-selected="true"] { background: var(--card); color: var(--accent); font-weight: 700; border-bottom-color: var(--card); }
+.plain-table { border-collapse: collapse; font-size: 0.85rem; margin: 0.4rem 0; }
+.plain-table th, .plain-table td { border: 1px solid var(--border); padding: 0.2rem 0.5rem; text-align: left; vertical-align: top; }
+.plain-table th { background: var(--bg-2); }
+
+</style>
+</head>
+<body>
+<header class="app-header">
+  <h1>テキスト変換</h1>
+  <p class="subtitle">差分・JSON・CSV・全角半角。このファイルは通信しません。</p>
+</header>
+<nav class="tabs" role="tablist" aria-label="道具">
+  <button type="button" role="tab" id="tabbtn-diff" data-tab="diff" aria-controls="tab-diff" aria-selected="true" tabindex="0">テキスト差分</button>
+  <button type="button" role="tab" id="tabbtn-json" data-tab="json" aria-controls="tab-json" aria-selected="false" tabindex="-1">JSON 整形</button>
+  <button type="button" role="tab" id="tabbtn-csv" data-tab="csv" aria-controls="tab-csv" aria-selected="false" tabindex="-1">CSV 整形</button>
+  <button type="button" role="tab" id="tabbtn-zenkaku" data-tab="zenkaku" aria-controls="tab-zenkaku" aria-selected="false" tabindex="-1">全角・半角・かな</button>
+</nav>
+<main class="app-main app-wide">
+<section class="tab-panel" id="tab-diff" role="tabpanel" aria-labelledby="tabbtn-diff">
+    <form id="d-form" autocomplete="off" onsubmit="return false">
+      <fieldset class="card req">
+        <legend>比べる 2 つの文章</legend>
+        <div class="pair">
+          <div class="field">
+            <div class="label-row"><label for="d-a">元の文章（A）</label><button type="button" class="btn-sub" id="d-a-file">ファイルを開く</button></div>
+            <textarea id="d-a" class="io" rows="7" spellcheck="false" placeholder="ここに貼り付け（ファイルのドロップも可）"></textarea>
+          </div>
+          <div class="field">
+            <div class="label-row"><label for="d-b">新しい文章（B）</label><button type="button" class="btn-sub" id="d-b-file">ファイルを開く</button></div>
+            <textarea id="d-b" class="io" rows="7" spellcheck="false" placeholder="ここに貼り付け（ファイルのドロップも可）"></textarea>
+          </div>
+        </div>
+      </fieldset>
+
+      <section class="card result-card" id="d-result" tabindex="-1" aria-labelledby="d-h-result">
+        <h2 id="d-h-result">違い</h2>
+        <div aria-live="polite">
+          <p class="result-big" id="d-big">—</p>
+          <p class="result-sub" id="d-sub">A と B に文章を入れると出ます。</p>
+        </div>
+        <div class="view-row" id="d-view-row" hidden>
+          <span class="seg" role="group" aria-label="表示">
+            <label><input type="radio" name="d-view" value="split"> 左右に並べる</label>
+            <label><input type="radio" name="d-view" value="unified"> 1 列</label>
+          </span>
+          <label class="inline-check" id="d-all-label"><input type="checkbox" id="d-all"> 同じ行もすべて出す</label>
+        </div>
+        <div id="d-out" class="diff-out"></div>
+        <div class="btn-row" id="d-actions" hidden>
+          <button type="button" class="btn-sub" id="d-copy-unified">unified 形式でコピー</button>
+          <button type="button" class="btn-sub" id="d-swap">A と B を入れ替える</button>
+        </div>
+        <p class="small" id="d-msg" aria-live="polite"></p>
+      </section>
+
+      <div class="opts">
+        <details class="card opt" id="d-opt">
+          <summary>比べ方: <span class="opt-state">行単位</span></summary>
+          <fieldset class="plain">
+            <legend>単位</legend>
+            <label class="inline-check"><input type="radio" name="d-unit" value="line"> 行（行の中の違う字も色分け）</label>
+            <label class="inline-check"><input type="radio" name="d-unit" value="char"> 文字（改行の少ない文章に）</label>
+          </fieldset>
+          <fieldset class="plain">
+            <legend>同じとみなす違い</legend>
+            <label class="inline-check"><input type="checkbox" id="d-space"> 空白（全角スペース・タブを含む）</label>
+            <label class="inline-check"><input type="checkbox" id="d-case"> 英字の大文字・小文字</label>
+            <label class="inline-check"><input type="checkbox" id="d-width"> 全角・半角（ＡとA、ｶﾞとガ）</label>
+          </fieldset>
+          <p class="small">改行コード（CRLF と LF）と、最後の行の改行の有無は比べません（違うときは結果の下に書きます）。</p>
+        </details>
+      </div>
+    </form>
+</section>
+<section class="tab-panel" id="tab-json" role="tabpanel" aria-labelledby="tabbtn-json" hidden>
+    <form id="j-form" autocomplete="off" onsubmit="return false">
+      <fieldset class="card req">
+        <legend>JSON</legend>
+        <div class="field">
+          <div class="label-row"><label for="j-in">整える・確かめる JSON</label><button type="button" class="btn-sub" id="j-file">ファイルを開く</button></div>
+          <textarea id="j-in" class="io" rows="9" spellcheck="false" data-accept=".json,.txt,application/json,text/plain" placeholder='{"name": "山田", "id": 12345678901234567890}'></textarea>
+        </div>
+      </fieldset>
+
+      <section class="card result-card" id="j-result" tabindex="-1" aria-labelledby="j-h-result">
+        <h2 id="j-h-result">結果</h2>
+        <div aria-live="polite">
+          <p class="result-big" id="j-big">—</p>
+          <p class="result-sub" id="j-sub">JSON を入れると、正しいかどうかと整えた形が出ます。</p>
+        </div>
+        <div id="j-err"></div>
+        <ul class="notes" id="j-notes"></ul>
+        <div class="view-row">
+          <span class="seg" role="group" aria-label="出力の形">
+            <label><input type="radio" name="j-mode" value="pretty"> 整形</label>
+            <label><input type="radio" name="j-mode" value="min"> 1 行に詰める</label>
+            <label><input type="radio" name="j-mode" value="csv"> CSV にする</label>
+          </span>
+        </div>
+        <label for="j-out" class="small">出力</label>
+        <textarea id="j-out" class="io out" rows="9" spellcheck="false" readonly></textarea>
+        <div id="j-preview"></div>
+        <div class="btn-row">
+          <button type="button" class="btn-sub" id="j-copy">コピー</button>
+          <button type="button" class="btn-sub" id="j-save">ファイルに保存</button>
+        </div>
+        <p class="small" id="j-msg" aria-live="polite"></p>
+      </section>
+
+      <div class="opts">
+        <details class="card opt" id="j-opt">
+          <summary>整え方: <span class="opt-state">字下げ 2</span></summary>
+          <div class="select-row">
+            <div class="field">
+              <label for="j-indent">字下げ</label>
+              <select id="j-indent">
+                <option value="2">スペース 2 つ</option>
+                <option value="4">スペース 4 つ</option>
+                <option value="tab">タブ</option>
+              </select>
+            </div>
+          </div>
+          <label class="inline-check"><input type="checkbox" id="j-sort"> 名前（キー）を並べ替える（文字コードの順）</label>
+          <fieldset class="plain">
+            <legend>CSV にするとき</legend>
+            <label class="inline-check"><input type="checkbox" id="j-bom"> 保存するファイルに BOM を付ける（Excel で文字化けしないように）</label>
+            <label class="inline-check"><input type="checkbox" id="j-tab"> 区切りをタブにする</label>
+          </fieldset>
+          <p class="small">数と文字列は書いてあったとおりに出します（12345678901234567890 や 1.10 も変えません）。</p>
+        </details>
+      </div>
+    </form>
+</section>
+<section class="tab-panel" id="tab-csv" role="tabpanel" aria-labelledby="tabbtn-csv" hidden>
+    <form id="c-form" autocomplete="off" onsubmit="return false">
+      <fieldset class="card req">
+        <legend>CSV</legend>
+        <div class="field">
+          <div class="label-row"><label for="c-in">整える・変換する CSV</label><button type="button" class="btn-sub" id="c-file">ファイルを開く</button></div>
+          <textarea id="c-in" class="io" rows="9" spellcheck="false" data-accept=".csv,.tsv,.txt,text/csv,text/plain" placeholder="名前,郵便番号&#10;山田,0010001"></textarea>
+        </div>
+      </fieldset>
+
+      <section class="card result-card" id="c-result" tabindex="-1" aria-labelledby="c-h-result">
+        <h2 id="c-h-result">結果</h2>
+        <div aria-live="polite">
+          <p class="result-big" id="c-big">—</p>
+          <p class="result-sub" id="c-sub">CSV を入れると、表の形と変換した結果が出ます。</p>
+        </div>
+        <ul class="notes" id="c-notes"></ul>
+        <div id="c-preview"></div>
+        <div class="view-row">
+          <span class="seg" role="group" aria-label="出力の形">
+            <label><input type="radio" name="c-mode" value="csv"> CSV に整える</label>
+            <label><input type="radio" name="c-mode" value="json"> JSON にする</label>
+          </span>
+        </div>
+        <label for="c-out" class="small">出力</label>
+        <textarea id="c-out" class="io out" rows="8" spellcheck="false" readonly></textarea>
+        <div class="btn-row">
+          <button type="button" class="btn-sub" id="c-copy">コピー</button>
+          <button type="button" class="btn-sub" id="c-save">ファイルに保存</button>
+        </div>
+        <p class="small" id="c-msg" aria-live="polite"></p>
+      </section>
+
+      <div class="opts">
+        <details class="card opt" id="c-opt">
+          <summary>読み方・書き方: <span class="opt-state">区切りは自動</span></summary>
+          <div class="select-row">
+            <div class="field">
+              <label for="c-delim">入力の区切り</label>
+              <select id="c-delim">
+                <option value="auto">自動で見分ける</option>
+                <option value=",">カンマ（,）</option>
+                <option value="tab">タブ</option>
+                <option value=";">セミコロン（;）</option>
+                <option value="|">縦棒（|）</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="c-outdelim">出力の区切り</label>
+              <select id="c-outdelim">
+                <option value=",">カンマ（,）</option>
+                <option value="tab">タブ</option>
+                <option value="same">入力と同じ</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="c-quote">「"」で囲む</label>
+              <select id="c-quote">
+                <option value="auto">必要なときだけ</option>
+                <option value="all">すべて</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="c-eol">改行</label>
+              <select id="c-eol">
+                <option value="crlf">CRLF（Windows・Excel）</option>
+                <option value="lf">LF</option>
+              </select>
+            </div>
+          </div>
+          <label class="inline-check"><input type="checkbox" id="c-bom"> 保存するファイルに BOM を付ける（Excel で文字化けしないように）</label>
+          <fieldset class="plain">
+            <legend>JSON にするとき</legend>
+            <label class="inline-check"><input type="checkbox" id="c-header"> 1 行目を名前（見出し）にする</label>
+            <label class="inline-check"><input type="checkbox" id="c-numbers"> 数字を数にする（0 で始まるものは文字のまま）</label>
+          </fieldset>
+        </details>
+      </div>
+    </form>
+</section>
+<section class="tab-panel" id="tab-zenkaku" role="tabpanel" aria-labelledby="tabbtn-zenkaku" hidden>
+    <form id="k-form" autocomplete="off" onsubmit="return false">
+      <fieldset class="card req">
+        <legend>変換する文章</legend>
+        <div class="field">
+          <div class="label-row"><label for="k-in">文章</label><button type="button" class="btn-sub" id="k-file">ファイルを開く</button></div>
+          <textarea id="k-in" class="io" rows="7" spellcheck="false" placeholder="ｶﾞｲﾄﾞﾌﾞｯｸ　ＡＢＣ－１２３"></textarea>
+        </div>
+        <div class="field">
+          <label for="k-preset">変換のしかた</label>
+          <select id="k-preset" class="wide">
+            <option value="std">表記をそろえる（英数字は半角、カナは全角）</option>
+            <option value="stdAll">英数字・記号・空白は半角、カナは全角</option>
+            <option value="kanaFull">半角カナだけ全角にする</option>
+            <option value="alnumHalf">全角の英数字だけ半角にする</option>
+            <option value="allFull">すべて全角にする</option>
+            <option value="allHalf">すべて半角にする（カナも）</option>
+            <option value="toKata">ひらがな → カタカナ</option>
+            <option value="toHira">カタカナ → ひらがな</option>
+            <option value="custom">くわしい設定で選ぶ</option>
+          </select>
+        </div>
+      </fieldset>
+
+      <section class="card result-card" id="k-result" tabindex="-1" aria-labelledby="k-h-result">
+        <h2 id="k-h-result">結果</h2>
+        <div aria-live="polite">
+          <p class="result-big" id="k-big">—</p>
+          <p class="result-sub" id="k-sub">文章を入れると、変換した結果が出ます。</p>
+        </div>
+        <label for="k-out" class="small">変換した文章</label>
+        <textarea id="k-out" class="io out" rows="7" spellcheck="false" readonly></textarea>
+        <div class="btn-row">
+          <button type="button" class="btn-sub" id="k-copy">コピー</button>
+          <button type="button" class="btn-sub" id="k-save">ファイルに保存</button>
+        </div>
+        <p class="small" id="k-msg" aria-live="polite"></p>
+        <details class="rels" id="k-pairs-box" hidden>
+          <summary>変えた字の内訳</summary>
+          <ul class="pairs" id="k-pairs"></ul>
+        </details>
+      </section>
+
+      <div class="opts">
+        <details class="card opt" id="k-opt">
+          <summary>くわしい設定: <span class="opt-state">—</span></summary>
+          <div class="select-row">
+            <div class="field"><label for="k-alnum">英数字</label><select id="k-alnum"><option value="none">変えない</option><option value="half">半角に</option><option value="full">全角に</option></select></div>
+            <div class="field"><label for="k-symbol">記号（! # ( ) など）</label><select id="k-symbol"><option value="none">変えない</option><option value="half">半角に</option><option value="full">全角に</option></select></div>
+            <div class="field"><label for="k-space">空白</label><select id="k-space"><option value="none">変えない</option><option value="half">半角に</option><option value="full">全角に</option></select></div>
+            <div class="field"><label for="k-kana">カタカナ</label><select id="k-kana"><option value="none">変えない</option><option value="full">全角に</option><option value="half">半角に</option></select></div>
+            <div class="field"><label for="k-hira">ひらがな・カタカナ</label><select id="k-hira"><option value="none">変えない</option><option value="kata">ひらがな → カタカナ</option><option value="hira">カタカナ → ひらがな</option></select></div>
+          </div>
+          <fieldset class="plain">
+            <legend>空白・改行の整理</legend>
+            <label class="inline-check"><input type="checkbox" id="k-trimend"> 行末の空白を消す</label>
+            <label class="inline-check"><input type="checkbox" id="k-collapse"> 続いた空白を 1 つにする</label>
+            <label class="inline-check"><input type="checkbox" id="k-edges"> 先頭と末尾の空行を消す</label>
+            <div class="select-row">
+              <div class="field"><label for="k-blank">空行</label><select id="k-blank"><option value="keep">そのまま</option><option value="one">続いた空行を 1 行に</option><option value="none">すべて消す</option></select></div>
+              <div class="field"><label for="k-eol">改行コード</label><select id="k-eol"><option value="keep">そのまま</option><option value="lf">LF</option><option value="crlf">CRLF</option></select></div>
+            </div>
+          </fieldset>
+          <label class="inline-check"><input type="checkbox" id="k-nfkc"> 最後に Unicode の NFKC 正規化もかける（①→1、㈱→(株) なども変わる）</label>
+          <p class="small">対応表と、NFKC だけにしない理由は<a href="https://yorozu-craft.com/henkan/zenkaku/guide.html#rules">使い方</a>に。</p>
+        </details>
+      </div>
+    </form>
+</section>
+<details class="card opt" id="file-box">
+  <summary>設定の保存・書き出し</summary>
+  <p class="small">設定はこの端末のブラウザ（localStorage、キー <code>henkan_settings</code>）にだけ保存されます。貼り付けた文章は保存しません。書き出し・読み込み・消去はこの画面のボタンから。</p>
+  <div class="btn-row">
+    <button type="button" class="btn backup-export">ファイルに書き出す</button>
+    <button type="button" class="btn backup-import">ファイルから読み込む</button>
+    <button type="button" class="btn btn-reset" data-reset-storage="henkan_">保存した内容をすべて消す（初期状態に戻す）</button>
+  </div>
+  <input type="file" accept=".json,application/json" hidden>
+  <p class="small backup-msg" aria-live="polite"></p>
+</details>
+<p class="small">使い方と最新版: <a href="https://yorozu-craft.com/henkan/">https://yorozu-craft.com/henkan/</a>（yorozu-craft）。MIT License。</p>
+</main>
+<script type="text/plain" id="henkan-worker-src">
+// ---- lib/kana.js ----
+// ===========================
+// 全角・半角・かなの変換（画面から切り離した純粋関数。DOM に触らない）
+// ブラウザ・Worker では self.HenkanKana、Node（テスト）では module.exports
+//
+// 対応表（README「全角・半角の対応表」と guide にも同じことを書く）:
+// - 英数・記号: U+FF01〜U+FF5E（全角）⇔ U+0021〜U+007E（半角）の 1 対 1 だけ。
+//   ￥（U+FFE5）・￣（U+FFE3）・〜（U+301C 波ダッシュ）などはこの範囲の外なので変えない
+// - 空白: U+3000（全角スペース）⇔ U+0020
+// - カタカナ: 半角カタカナ（U+FF61〜U+FF9F）⇔ 全角。濁点・半濁点（ﾞ ﾟ）は前の字と 1 文字に合わせる（ｶﾞ→ガ、ﾊﾟ→パ、ｳﾞ→ヴ、ﾜﾞ→ヷ、ｦﾞ→ヺ）。
+//   前の字と合わせられない ﾞ ﾟ は ゛ ゜（U+309B・U+309C）にする（NFKC は結合用の U+3099・U+309A にしてしまう）
+//   全角 → 半角で、半角の字が無いもの（ヰ ヱ ヮ ヵ ヶ ヸ ヹ）は変えずに残し、数を返す（別の字に置き換えない）
+// - ひらがな ⇔ カタカナ: ぁ〜ゖ ⇔ ァ〜ヶ、ゝゞ ⇔ ヽヾ。ヷ ヸ ヹ ヺ はひらがなが無いので残す
+// ===========================
+(function (root) {
+  'use strict';
+
+  // 半角カタカナ（U+FF61〜U+FF9D）→ 全角。添え字 = コード − 0xFF61
+  var HALF_KANA = '。「」、・ヲァィゥェォャュョッーアイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワン';
+  var H2F = {}, F2H = {};
+  for (var i = 0; i < HALF_KANA.length; i++) {
+    var h = String.fromCharCode(0xFF61 + i), f = HALF_KANA.charAt(i);
+    H2F[h] = f; F2H[f] = h;
+  }
+  H2F['ﾞ'] = '゛'; H2F['ﾟ'] = '゜';
+  F2H['゛'] = 'ﾞ'; F2H['゜'] = 'ﾟ';
+  F2H['゙'] = 'ﾞ'; F2H['゚'] = 'ﾟ';   // 結合用の濁点・半濁点（分解された形の ガ など）
+  // 濁点・半濁点つき: 全角 1 文字 ⇔ 半角 2 文字
+  var VOICED = {}, VOICED_REV = {};
+  function addVoiced(base, list, mark) {
+    for (var k = 0; k < base.length; k++) {
+      var full = list.charAt(k), half = F2H[base.charAt(k)] + mark;
+      VOICED[half] = full; VOICED_REV[full] = half;
+    }
+  }
+  addVoiced('カキクケコサシスセソタチツテトハヒフヘホ', 'ガギグゲゴザジズゼゾダヂヅデドバビブベボ', 'ﾞ');
+  addVoiced('ハヒフヘホ', 'パピプペポ', 'ﾟ');
+  addVoiced('ウワヲ', 'ヴヷヺ', 'ﾞ');
+  // 半角の字が無いカタカナ（全角 → 半角で残すもの）
+  var NO_HALF = 'ヰヱヮヵヶヸヹヽヾ';
+
+  function isAlnum(c) { return (c >= 0x30 && c <= 0x39) || (c >= 0x41 && c <= 0x5A) || (c >= 0x61 && c <= 0x7A); }
+
+  /**
+   * 変換する。opts の各項目は 'none'（変えない）か、下の値
+   *   alnum:  'half' | 'full'   英字と数字
+   *   symbol: 'half' | 'full'   ASCII の記号（! " # … ~）と、その全角
+   *   space:  'half' | 'full'   空白（U+0020 ⇔ U+3000）
+   *   kana:   'half' | 'full'   カタカナと、半角カナの区画にある 。「」、・ー ゛゜
+   *   hira:   'kata' | 'hira'   ひらがな ⇔ カタカナ（kana の前にかける）
+   *   tidy:   { trimEnd, collapseSpaces, blankLines: 'keep'|'one'|'none', eol: 'keep'|'lf'|'crlf', trimEdges }
+   *   nfkc:   true なら最後に String.prototype.normalize('NFKC')
+   * @returns {{text: string, changed: number, pairs: Object<string, number>, kept: Object<string, number>}}
+   *   pairs は「元→後」ごとの数（表示用）、kept は半角にできずに残したカタカナの数
+   */
+  function convert(text, opts) {
+    opts = opts || {};
+    var s = String(text == null ? '' : text);
+    var pairs = {}, kept = {}, changed = 0;
+    function note(from, to) { var k = from + '→' + to; pairs[k] = (pairs[k] || 0) + 1; changed++; }
+
+    // ひらがな → カタカナは幅より先に（がっこう → ｶﾞｯｺｳ）、カタカナ → ひらがなは幅より後に（ｶﾞｯｺｳ → がっこう）
+    var widthOn = opts.alnum === 'half' || opts.alnum === 'full' || opts.symbol === 'half' || opts.symbol === 'full' ||
+        opts.space === 'half' || opts.space === 'full' || opts.kana === 'half' || opts.kana === 'full';
+    if (opts.hira === 'kata') s = hiraKata(s, 'kata', note);
+    if (widthOn) s = width(s, opts, note, kept);
+    if (opts.hira === 'hira') s = hiraKata(s, 'hira', note);
+    if (opts.tidy) s = tidy(s, opts.tidy);   // 空白・改行の整理は字の置き換えではないので pairs に入れない
+    if (opts.nfkc) {
+      var n = s.normalize('NFKC');
+      if (n !== s) pairs['NFKC 正規化'] = (pairs['NFKC 正規化'] || 0) + 1;
+      s = n;
+    }
+    return { text: s, changed: changed, pairs: pairs, kept: kept };
+  }
+
+  function hiraKata(s, dir, note) {
+    var out = [], from = dir === 'kata' ? 0x3041 : 0x30A1, to = dir === 'kata' ? 0x3096 : 0x30F6, d = dir === 'kata' ? 0x60 : -0x60;
+    for (var i = 0; i < s.length; i++) {
+      var c = s.charCodeAt(i), r = null;
+      if (c >= from && c <= to) r = String.fromCharCode(c + d);
+      else if (dir === 'kata' && (c === 0x309D || c === 0x309E)) r = String.fromCharCode(c + 0x60);   // ゝゞ → ヽヾ
+      else if (dir === 'hira' && (c === 0x30FD || c === 0x30FE)) r = String.fromCharCode(c - 0x60);   // ヽヾ → ゝゞ
+      if (r !== null) { note(s.charAt(i), r); out.push(r); } else out.push(s.charAt(i));
+    }
+    return out.join('');
+  }
+
+  function width(s, o, note, kept) {
+    var out = [];
+    for (var i = 0; i < s.length; i++) {
+      var ch = s.charAt(i), c = s.charCodeAt(i), r = null;
+      // 英数・記号（全角 → 半角）
+      if (c >= 0xFF01 && c <= 0xFF5E) {
+        var a = c - 0xFEE0;
+        if (isAlnum(a) ? o.alnum === 'half' : o.symbol === 'half') r = String.fromCharCode(a);
+      } else if (c >= 0x21 && c <= 0x7E) {
+        if (isAlnum(c) ? o.alnum === 'full' : o.symbol === 'full') r = String.fromCharCode(c + 0xFEE0);
+      } else if (c === 0x3000) {
+        if (o.space === 'half') r = ' ';
+      } else if (c === 0x20) {
+        if (o.space === 'full') r = '　';
+      } else if (c >= 0xFF61 && c <= 0xFF9F) {
+        // 半角カナ → 全角（後ろの ﾞ ﾟ と合わせる）
+        if (o.kana === 'full') {
+          var two = s.substr(i, 2);
+          if (VOICED[two]) { note(two, VOICED[two]); out.push(VOICED[two]); i++; continue; }
+          r = H2F[ch];
+        }
+      } else if (o.kana === 'half') {
+        // 全角カナ → 半角。分解された形（カ＋U+3099）も合わせて 1 つとして数える
+        if (VOICED_REV[ch]) r = VOICED_REV[ch];
+        else if (F2H[ch]) r = F2H[ch];
+        else if (NO_HALF.indexOf(ch) >= 0) kept[ch] = (kept[ch] || 0) + 1;
+        if (r !== null && F2H[ch] && (s.charAt(i + 1) === '゙' || s.charAt(i + 1) === '゚')) {
+          var mark = F2H[s.charAt(i + 1)];
+          note(ch + s.charAt(i + 1), r + mark); out.push(r + mark); i++; continue;
+        }
+      }
+      if (r !== null && r !== ch) { note(ch, r); out.push(r); } else out.push(ch);
+    }
+    return out.join('');
+  }
+
+  /** 空白・改行の整理 */
+  function tidy(s, t) {
+    var eol = /\r\n/.test(s) ? '\r\n' : '\n';
+    if (t.eol === 'lf') eol = '\n'; else if (t.eol === 'crlf') eol = '\r\n';
+    var lines = s.split(/\r\n|\n|\r/);
+    if (t.collapseSpaces) lines = lines.map(function (l) { return l.replace(/[ \t　]{2,}/g, function (m) { return m.charAt(0); }); });
+    if (t.trimEnd) lines = lines.map(function (l) { return l.replace(/[ \t　]+$/, ''); });
+    if (t.blankLines === 'one' || t.blankLines === 'none') {
+      var out = [], prevBlank = false;
+      lines.forEach(function (l) {
+        var blank = /^[ \t　]*$/.test(l);
+        if (blank && (t.blankLines === 'none' || prevBlank)) return;
+        out.push(l); prevBlank = blank;
+      });
+      lines = out;
+    }
+    if (t.trimEdges) {
+      while (lines.length > 1 && /^[ \t　]*$/.test(lines[0])) lines.shift();
+      while (lines.length > 1 && /^[ \t　]*$/.test(lines[lines.length - 1])) lines.pop();
+    }
+    return lines.join(eol);
+  }
+
+  /**
+   * 差分で「全角・半角を同じとみなす」ための比べる形（表示には使わない）。
+   * 英数記号と空白は半角に、半角カナは全角に（濁点を合わせる）
+   */
+  function foldWidth(s) {
+    return width(String(s), { alnum: 'half', symbol: 'half', space: 'half', kana: 'full' }, function () {}, {});
+  }
+
+  var api = { convert: convert, foldWidth: foldWidth, tidy: tidy, NO_HALF: NO_HALF };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  else root.HenkanKana = api;
+})(typeof self !== 'undefined' ? self : this);
+
+// ---- lib/diff.js ----
+// ===========================
+// テキストの差分（画面から切り離した純粋関数。DOM に触らない）
+// ブラウザ・Worker では self.HenkanDiff、Node（テスト）では module.exports
+//
+// 手法: Myers の O(ND) 差分アルゴリズムの線形空間版（中央のスネークで分割）。
+//   E. W. Myers, "An O(ND) Difference Algorithm and Its Variations", Algorithmica 1 (1986) 251-266。
+//   分割の書き方は GNU diffutils の diffseq.h（compareseq / diag）と同じ形で、コードは自分で書いた。
+// 速さのための工夫（どれも「最短の差分」を変えないもの。4 だけが例外で、そのときは approx を立てる）:
+//   1. 前後の一致をはじめに切り落とす
+//   2. 相手側に 1 回も出てこない行（字）は、必ず削除・追加なので、比べる列から外す
+//   3. 比べる単位（行・字）は整数に置き換えて比べる
+//   4. 1 回の分割で探す深さに上限（入力が大きいほど小さい）。超えたら GNU diff と同じ近似で分ける
+// ===========================
+(function (root) {
+  'use strict';
+
+  var Kana = (typeof module !== 'undefined' && module.exports) ? require('./kana.js') : root.HenkanKana;
+
+  /**
+   * 整数の列 a・b の差分。削除・追加の印（1）を返す
+   * @returns {{da: Uint8Array, db: Uint8Array, approx: boolean}}
+   */
+  function compare(a, b) {
+    var n = a.length, m = b.length;
+    var da = new Uint8Array(n), db = new Uint8Array(m);
+    // 2. 相手に無い要素を外す
+    var inB = new Set(), inA = new Set(), i;
+    for (i = 0; i < m; i++) inB.add(b[i]);
+    for (i = 0; i < n; i++) inA.add(a[i]);
+    var ia = [], ib = [];
+    for (i = 0; i < n; i++) { if (inB.has(a[i])) ia.push(i); else da[i] = 1; }
+    for (i = 0; i < m; i++) { if (inA.has(b[i])) ib.push(i); else db[i] = 1; }
+    var A = new Int32Array(ia.length), B = new Int32Array(ib.length);
+    for (i = 0; i < ia.length; i++) A[i] = a[ia[i]];
+    for (i = 0; i < ib.length; i++) B[i] = b[ib[i]];
+    var N = A.length, M = B.length;
+    var fa = new Uint8Array(N), fb = new Uint8Array(M);
+    var approx = false;
+    if (N && M) approx = seq(A, B, fa, fb);
+    else { fa.fill(1); fb.fill(1); }
+    for (i = 0; i < N; i++) if (fa[i]) da[ia[i]] = 1;
+    for (i = 0; i < M; i++) if (fb[i]) db[ib[i]] = 1;
+    return { da: da, db: db, approx: approx };
+  }
+
+  // 線形空間の Myers。再帰は明示のスタックで（深い再帰でスタックがあふれないように）
+  function seq(A, B, fa, fb) {
+    var N = A.length, M = B.length, off = M + 1, size = N + M + 3;
+    var fd = new Int32Array(size), bd = new Int32Array(size);
+    var BIG = 0x3fffffff, approx = false;
+    // 4. 深さの上限。小さい入力では実質無制限（最短）、大きい入力では 1 回の探索を (N+M)×上限 に抑える
+    var tooExpensive = Math.max(256, Math.floor(4e7 / (N + M)));
+    var stack = [0, N, 0, M];
+    while (stack.length) {
+      var ylim = stack.pop(), yoff = stack.pop(), xlim = stack.pop(), xoff = stack.pop();
+      while (xoff < xlim && yoff < ylim && A[xoff] === B[yoff]) { xoff++; yoff++; }
+      while (xlim > xoff && ylim > yoff && A[xlim - 1] === B[ylim - 1]) { xlim--; ylim--; }
+      if (xoff === xlim) { for (var y0 = yoff; y0 < ylim; y0++) fb[y0] = 1; continue; }
+      if (yoff === ylim) { for (var x0 = xoff; x0 < xlim; x0++) fa[x0] = 1; continue; }
+      // 中央のスネークを探す
+      var dmin = xoff - ylim, dmax = xlim - yoff, fmid = xoff - yoff, bmid = xlim - ylim;
+      var fmin = fmid, fmax = fmid, bmin = bmid, bmax = bmid, odd = (fmid - bmid) & 1;
+      fd[fmid + off] = xoff; bd[bmid + off] = xlim;
+      var sx = -1, sy = -1, d, x, y, tlo, thi;
+      for (var c = 1; ; c++) {
+        if (fmin > dmin) fd[--fmin - 1 + off] = -1; else ++fmin;
+        if (fmax < dmax) fd[++fmax + 1 + off] = -1; else --fmax;
+        for (d = fmax; d >= fmin; d -= 2) {
+          tlo = fd[d - 1 + off]; thi = fd[d + 1 + off];
+          x = tlo >= thi ? tlo + 1 : thi; y = x - d;
+          while (x < xlim && y < ylim && A[x] === B[y]) { x++; y++; }
+          fd[d + off] = x;
+          if (odd && bmin <= d && d <= bmax && bd[d + off] <= x) { sx = x; sy = y; break; }
+        }
+        if (sx >= 0) break;
+        if (bmin > dmin) bd[--bmin - 1 + off] = BIG; else ++bmin;
+        if (bmax < dmax) bd[++bmax + 1 + off] = BIG; else --bmax;
+        for (d = bmax; d >= bmin; d -= 2) {
+          tlo = bd[d - 1 + off]; thi = bd[d + 1 + off];
+          x = tlo < thi ? tlo : thi - 1; y = x - d;
+          while (x > xoff && y > yoff && A[x - 1] === B[y - 1]) { x--; y--; }
+          bd[d + off] = x;
+          if (!odd && fmin <= d && d <= fmax && x <= fd[d + off]) { sx = x; sy = y; break; }
+        }
+        if (sx >= 0) break;
+        if (c >= tooExpensive) {
+          // GNU diff と同じ近似: いちばん進んだ対角線で分ける（最短とは限らない）
+          approx = true;
+          var fxy = -1, fx = 0, bxy = BIG, bx = 0;
+          for (d = fmax; d >= fmin; d -= 2) {
+            x = Math.min(fd[d + off], xlim); y = x - d;
+            if (ylim < y) { x = ylim + d; y = ylim; }
+            if (fxy < x + y) { fxy = x + y; fx = x; }
+          }
+          for (d = bmax; d >= bmin; d -= 2) {
+            x = Math.max(xoff, bd[d + off]); y = x - d;
+            if (y < yoff) { x = yoff + d; y = yoff; }
+            if (x + y < bxy) { bxy = x + y; bx = x; }
+          }
+          if ((xlim + ylim) - bxy < fxy - (xoff + yoff)) { sx = fx; sy = fxy - fx; } else { sx = bx; sy = bxy - bx; }
+          break;
+        }
+      }
+      stack.push(sx, xlim, sy, ylim);
+      stack.push(xoff, sx, yoff, sy);
+    }
+    return approx;
+  }
+
+  /** 文字列の列を整数の列にする（同じ比べる形 → 同じ番号） */
+  function intern(keysA, keysB) {
+    var map = new Map(), a = new Int32Array(keysA.length), b = new Int32Array(keysB.length), i, id;
+    for (i = 0; i < keysA.length; i++) { id = map.get(keysA[i]); if (id === undefined) { id = map.size; map.set(keysA[i], id); } a[i] = id; }
+    for (i = 0; i < keysB.length; i++) { id = map.get(keysB[i]); if (id === undefined) { id = map.size; map.set(keysB[i], id); } b[i] = id; }
+    return { a: a, b: b };
+  }
+
+  /** 比べる形（表示は元の文字のまま） */
+  function keyFn(o) {
+    o = o || {};
+    return function (s) {
+      if (o.width) s = Kana.foldWidth(s);
+      if (o.space) s = s.replace(/\s+/g, '');   // \s は全角スペース（U+3000）も含む
+      if (o.caseless) s = s.toLowerCase();
+      return s;
+    };
+  }
+
+  /** 行に分ける。改行は CRLF・LF・CR のどれでもよい */
+  function splitLines(text) {
+    var t = String(text == null ? '' : text);
+    var crlf = (t.match(/\r\n/g) || []).length, lf = (t.match(/\n/g) || []).length - crlf, cr = (t.match(/\r(?!\n)/g) || []).length;
+    var eol = crlf + lf + cr === 0 ? 'なし' : crlf >= lf && crlf >= cr ? 'CRLF' : lf >= cr ? 'LF' : 'CR';
+    if (t === '') return { lines: [], finalEol: true, eol: eol };
+    var lines = t.split(/\r\n|\n|\r/), finalEol = lines[lines.length - 1] === '';
+    if (finalEol) lines.pop();
+    return { lines: lines, finalEol: finalEol, eol: eol };
+  }
+
+  /** 印（da・db）から、同じ所と変わった所の並びを作る */
+  function hunksOf(da, db) {
+    var out = [], i = 0, j = 0, n = da.length, m = db.length;
+    while (i < n || j < m) {
+      var i0 = i, j0 = j;
+      while (i < n && j < m && !da[i] && !db[j]) { i++; j++; }
+      if (i > i0) out.push({ t: 'eq', a0: i0, a1: i, b0: j0, b1: j });
+      i0 = i; j0 = j;
+      while (i < n && da[i]) i++;
+      while (j < m && db[j]) j++;
+      if (i > i0 || j > j0) out.push({ t: 'ch', a0: i0, a1: i, b0: j0, b1: j });
+      if (i === i0 && j === j0 && (i < n || j < m)) {   // 念のため（ここには来ない）
+        if (i < n) { da[i] = 1; } else { db[j] = 1; }
+      }
+    }
+    return out;
+  }
+
+  /**
+   * 行単位の差分。変わった行の組には、字単位の強調（inline）を付ける
+   * @param {{space?:boolean, caseless?:boolean, width?:boolean, inline?:boolean}} o
+   */
+  function diffLines(textA, textB, o) {
+    o = o || {};
+    var A = splitLines(textA), B = splitLines(textB), key = keyFn(o);
+    var ids = intern(A.lines.map(key), B.lines.map(key));
+    var r = compare(ids.a, ids.b);
+    var hunks = hunksOf(r.da, r.db), add = 0, del = 0, pairsDone = 0;
+    hunks.forEach(function (h) {
+      if (h.t !== 'ch') return;
+      del += h.a1 - h.a0; add += h.b1 - h.b0;
+      if (o.inline === false) return;
+      // 同じ位置の行どうしを字単位で比べ、似ている組だけ強調する
+      var k = Math.min(h.a1 - h.a0, h.b1 - h.b0);
+      for (var p = 0; p < k && pairsDone < 3000; p++) {
+        var la = A.lines[h.a0 + p], lb = B.lines[h.b0 + p];
+        if (la.length > 3000 || lb.length > 3000) continue;
+        pairsDone++;
+        var c = diffChars(la, lb, o);
+        if (c.same / Math.max(1, Math.max(c.lenA, c.lenB)) < 0.35) continue;   // ほとんど違う行は行ごとの色だけ
+        (h.inline || (h.inline = []))[p] = { a: c.a, b: c.b };
+      }
+    });
+    return {
+      mode: 'line', hunks: hunks, linesA: A.lines, linesB: B.lines, approx: r.approx,
+      add: add, del: del, same: A.lines.length - del,
+      eolA: A.eol, eolB: B.eol, finalEolA: A.finalEol, finalEolB: B.finalEol,
+    };
+  }
+
+  /** 字に分ける。結合する濁点・半濁点・合字の印は前の字と 1 つにする */
+  var JOIN = /[̀-゙゚ͯﾞﾟ︀-️‍]/;
+  function tokens(s) {
+    var out = [], cur = '';
+    for (var ch of String(s)) {
+      if (cur && JOIN.test(ch)) cur += ch;
+      else { if (cur) out.push(cur); cur = ch; }
+    }
+    if (cur) out.push(cur);
+    return out;
+  }
+
+  /**
+   * 字単位の差分。a・b は [種類, 文字] の並び（'=' 同じ、'-' 削除、'+' 追加）。inline は 1 本にまとめた並び
+   * 空白を無視するときは、空白を比べる列から外し、同じ扱いで表示する
+   */
+  function diffChars(textA, textB, o) {
+    o = o || {};
+    var ta = tokens(textA), tb = tokens(textB), key = keyFn(o);
+    var ka = ta.map(key), kb = tb.map(key);
+    var skipA = new Uint8Array(ta.length), skipB = new Uint8Array(tb.length), xa = [], xb = [], i;
+    for (i = 0; i < ta.length; i++) { if (o.space && ka[i] === '') skipA[i] = 1; else xa.push(i); }
+    for (i = 0; i < tb.length; i++) { if (o.space && kb[i] === '') skipB[i] = 1; else xb.push(i); }
+    var ids = intern(xa.map(function (x) { return ka[x]; }), xb.map(function (x) { return kb[x]; }));
+    var r = compare(ids.a, ids.b);
+    var fa = new Uint8Array(ta.length), fb = new Uint8Array(tb.length), same = 0;
+    for (i = 0; i < xa.length; i++) if (r.da[i]) fa[xa[i]] = 1;
+    for (i = 0; i < xb.length; i++) if (r.db[i]) fb[xb[i]] = 1;
+    for (i = 0; i < xa.length; i++) if (!r.da[i]) same++;
+    function runs(tok, flag, skip, mark) {
+      var out = [];
+      for (var k = 0; k < tok.length; k++) {
+        var t = flag[k] ? mark : '=';
+        if (out.length && out[out.length - 1][0] === t) out[out.length - 1][1] += tok[k];
+        else out.push([t, tok[k]]);
+      }
+      return out;
+    }
+    // 1 本にまとめた並び（同じ所は新しい方の字で出す。無視した A の空白は出さない）
+    var inline = [], p = 0, q = 0, add = 0, del = 0;
+    function push(t, s) { if (inline.length && inline[inline.length - 1][0] === t) inline[inline.length - 1][1] += s; else inline.push([t, s]); }
+    while (p < ta.length || q < tb.length) {
+      if (p < ta.length && skipA[p]) { p++; continue; }
+      if (q < tb.length && skipB[q]) { push('=', tb[q]); q++; continue; }
+      if (p < ta.length && fa[p]) { push('-', ta[p]); del++; p++; continue; }
+      if (q < tb.length && fb[q]) { push('+', tb[q]); add++; q++; continue; }
+      if (p < ta.length && q < tb.length) { push('=', tb[q]); p++; q++; continue; }
+      if (p < ta.length) { push('-', ta[p]); del++; p++; } else { push('+', tb[q]); add++; q++; }
+    }
+    return {
+      mode: 'char', a: runs(ta, fa, skipA, '-'), b: runs(tb, fb, skipB, '+'), inline: inline,
+      add: add, del: del, same: same, lenA: xa.length, lenB: xb.length, approx: r.approx,
+    };
+  }
+
+  /**
+   * unified diff の文字列（diff -u と同じ形。見出しの日時は付けない）
+   * 同じ所は A の行を出す。行末の改行が無い最後の行には「\ No newline at end of file」
+   */
+  function unified(res, o) {
+    o = o || {};
+    var ctx = o.context == null ? 3 : o.context, H = res.hunks, out = [];
+    if (!H.some(function (h) { return h.t === 'ch'; })) return '';
+    out.push('--- ' + (o.nameA || 'A'), '+++ ' + (o.nameB || 'B'));
+    var nA = res.linesA.length, nB = res.linesB.length;
+    // 変わった所ごとに前後 ctx 行をつけ、近いものはまとめる
+    var groups = [], cur = null;
+    H.forEach(function (h) {
+      if (h.t !== 'ch') return;
+      var a0 = Math.max(0, h.a0 - ctx), b0 = Math.max(0, h.b0 - ctx);
+      if (cur && h.a0 - cur.lastA1 <= 2 * ctx) { cur.list.push(h); cur.lastA1 = h.a1; cur.lastB1 = h.b1; }
+      else { cur = { a0: a0, b0: b0, list: [h], lastA1: h.a1, lastB1: h.b1 }; groups.push(cur); }
+    });
+    function range(start, count) {
+      var s = count === 0 ? start : start + 1;
+      return count === 1 ? String(s) : s + ',' + count;
+    }
+    groups.forEach(function (g) {
+      var a1 = Math.min(nA, g.lastA1 + ctx), b1 = Math.min(nB, g.lastB1 + ctx);
+      out.push('@@ -' + range(g.a0, a1 - g.a0) + ' +' + range(g.b0, b1 - g.b0) + ' @@');
+      var ai = g.a0, bi = g.b0;
+      function line(prefix, side, idx) {
+        out.push(prefix + (side === 'a' ? res.linesA[idx] : res.linesB[idx]));
+        if (side === 'a' && idx === nA - 1 && !res.finalEolA) out.push('\\ No newline at end of file');
+        if (side === 'b' && idx === nB - 1 && !res.finalEolB) out.push('\\ No newline at end of file');
+      }
+      g.list.forEach(function (h) {
+        while (ai < h.a0) { line(' ', 'a', ai); ai++; bi++; }
+        for (var x = h.a0; x < h.a1; x++) line('-', 'a', x);
+        for (var y = h.b0; y < h.b1; y++) line('+', 'b', y);
+        ai = h.a1; bi = h.b1;
+      });
+      while (ai < a1) { line(' ', 'a', ai); ai++; bi++; }
+    });
+    return out.join('\n') + '\n';
+  }
+
+  var api = { compare: compare, diffLines: diffLines, diffChars: diffChars, unified: unified, splitLines: splitLines, tokens: tokens, hunksOf: hunksOf };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  else root.HenkanDiff = api;
+})(typeof self !== 'undefined' ? self : this);
+
+// ---- lib/json.js ----
+// ===========================
+// JSON の検証・整形（画面から切り離した純粋関数。DOM に触らない）
+// ブラウザ・Worker では self.HenkanJson、Node（テスト）では module.exports
+//
+// 自前の読み取り器を使う理由:
+// - 数と文字列を「書いてあったとおり」に残す。JSON.parse を通すと 12345678901234567890 は
+//   12345678901234567000 に、1.10 は 1.1 に、"あ" は "あ" になる（RFC 8259 6 章: 数の精度は実装しだい）
+// - 誤りの位置（行・列）と理由を、ブラウザによらず同じ日本語で出す
+// 文法は RFC 8259（空白は スペース・タブ・LF・CR の 4 つだけ）。先頭の BOM は読み飛ばして知らせる（8.1 章の MAY）
+// ===========================
+(function (root) {
+  'use strict';
+
+  var MAX_DEPTH = 2000;
+
+  function JsonError(message, index, hint) { this.message = message; this.index = index; this.hint = hint || ''; }
+
+  /** index（UTF-16 の位置）→ 行・列（列は字の数。1 から） */
+  function lineCol(text, index) {
+    var line = 1, start = 0;
+    for (var i = 0; i < index && i < text.length; i++) {
+      var c = text.charCodeAt(i);
+      if (c === 10 || (c === 13 && text.charCodeAt(i + 1) !== 10)) { line++; start = i + 1; }
+    }
+    var col = 1;
+    for (var k = start; k < index && k < text.length; k++) {
+      var cc = text.charCodeAt(k);
+      if (cc >= 0xD800 && cc <= 0xDBFF && k + 1 < index) k++;   // サロゲートペアは 1 字
+      col++;
+    }
+    return { line: line, col: col };
+  }
+
+  function show(ch) {
+    if (ch === undefined || ch === '') return '入力の終わり';
+    if (ch === ' ') return '半角スペース';
+    if (ch === '　') return '全角スペース';
+    if (ch === '\t') return 'タブ';
+    if (ch === '\n' || ch === '\r') return '改行';
+    return '「' + ch + '」';
+  }
+
+  /**
+   * 読み取る
+   * @returns {{ok: true, value: object, bom: boolean, dupKeys: Array} | {ok: false, error: {message, hint, index, line, col}}}
+   *   value は { t: 'obj'|'arr'|'str'|'num'|'lit', raw?: string, items?: [...], entries?: [[keyRaw, keyValue, node]] }
+   */
+  function parse(text) {
+    var s = String(text == null ? '' : text), i = 0, n = s.length, bom = false, dupKeys = [];
+    if (s.charCodeAt(0) === 0xFEFF) { bom = true; i = 1; }
+
+    function ws() {
+      while (i < n) {
+        var c = s.charCodeAt(i);
+        if (c === 32 || c === 9 || c === 10 || c === 13) i++;
+        else break;
+      }
+      // 空白ではないが空白に見えるもの・コメント
+      var ch = s.charAt(i);
+      if (ch === '　' || ch === ' ' || ch === '﻿') throw new JsonError(show(ch) + 'は JSON では空白として使えません。', i, '半角スペースに置き換えてください。');
+      if (ch === '/' && (s.charAt(i + 1) === '/' || s.charAt(i + 1) === '*')) throw new JsonError('コメント（' + s.substr(i, 2) + '）は JSON では書けません。', i, 'コメントを消してください（JSONC・JSON5 の書き方です）。');
+    }
+
+    function value(depth) {
+      if (depth > MAX_DEPTH) throw new JsonError('入れ子が深すぎます（' + MAX_DEPTH + ' 段まで）。', i);
+      ws();
+      var ch = s.charAt(i);
+      if (ch === '{') return object(depth);
+      if (ch === '[') return array(depth);
+      if (ch === '"') return { t: 'str', raw: string() };
+      if (ch === '-' || (ch >= '0' && ch <= '9')) return { t: 'num', raw: number() };
+      if (s.startsWith('true', i)) { i += 4; return { t: 'lit', raw: 'true' }; }
+      if (s.startsWith('false', i)) { i += 5; return { t: 'lit', raw: 'false' }; }
+      if (s.startsWith('null', i)) { i += 4; return { t: 'lit', raw: 'null' }; }
+      if (i >= n) throw new JsonError('値がありません（入力が途中で終わっています）。', i);
+      if (ch === "'") throw new JsonError('文字列が「\'」（シングルクォート）で囲まれています。', i, 'JSON の文字列は「"」（ダブルクォート）で囲みます。');
+      if (ch === '“' || ch === '”') throw new JsonError('全角の引用符' + show(ch) + 'があります。', i, '半角の「"」に置き換えてください。');
+      if (ch === '+' || ch === '.') throw new JsonError(show(ch) + 'で始まる数は JSON では書けません。', i, ch === '+' ? '「+」を消してください。' : '「0.5」のように 0 を付けてください。');
+      var word = /^[A-Za-z_$][\w$]*/.exec(s.slice(i, i + 40));
+      if (word) {
+        var w = word[0];
+        if (w === 'True' || w === 'False' || w === 'TRUE' || w === 'FALSE' || w === 'Null' || w === 'NULL' || w === 'None') throw new JsonError(show(w) + 'は JSON では使えません。', i, 'true・false・null は小文字で書きます。');
+        if (w === 'NaN' || w === 'Infinity' || w === 'undefined') throw new JsonError(show(w) + 'は JSON の値として書けません。', i, 'null か文字列にしてください。');
+        throw new JsonError('値として読めない語' + show(w) + 'があります。', i, '文字列なら「"」で囲んでください。');
+      }
+      if (ch === ',' ) throw new JsonError('値が来るところに「,」があります。', i, 'カンマが 2 つ続いているか、最初の値が抜けています。');
+      if (ch === ']' || ch === '}') throw new JsonError('値が来るところに' + show(ch) + 'があります。', i);
+      throw new JsonError('値が来るところに' + show(ch) + 'があります。', i);
+    }
+
+    function object(depth) {
+      var open = i, entries = [], seen = new Map();
+      i++;
+      ws();
+      if (s.charAt(i) === '}') { i++; return { t: 'obj', entries: entries }; }
+      for (;;) {
+        ws();
+        var ch = s.charAt(i);
+        if (ch !== '"') {
+          if (ch === '}' && entries.length) throw new JsonError('「}」の前に余分な「,」があります。', lastComma, 'JSON では最後の項目の後ろにカンマを書けません。');
+          if (ch === "'") throw new JsonError('名前（キー）が「\'」で囲まれています。', i, '「"」で囲んでください。');
+          if (/[A-Za-z_$]/.test(ch)) throw new JsonError('名前（キー）が「"」で囲まれていません。', i, '{"name": 1} のように名前も「"」で囲みます。');
+          if (i >= n) throw new JsonError('「{」が閉じていません。', open, lineCol(s, open).line + ' 行目の「{」に対応する「}」がありません。');
+          throw new JsonError('名前（キー）が来るところに' + show(ch) + 'があります。', i);
+        }
+        var kpos = i, kraw = string(), kval = decodeString(kraw);
+        if (seen.has(kval)) dupKeys.push({ key: kval, index: kpos, first: seen.get(kval) }); else seen.set(kval, kpos);
+        ws();
+        if (s.charAt(i) !== ':') {
+          if (s.charAt(i) === '：') throw new JsonError('全角の「：」があります。', i, '半角の「:」に置き換えてください。');
+          throw new JsonError('名前の後ろに「:」がありません（' + show(s.charAt(i)) + 'があります）。', i);
+        }
+        i++;
+        var v = value(depth + 1);
+        entries.push([kraw, kval, v]);
+        ws();
+        ch = s.charAt(i);
+        if (ch === ',') { var lastComma = i; i++; continue; }
+        if (ch === '}') { i++; return { t: 'obj', entries: entries }; }
+        if (i >= n) throw new JsonError('「{」が閉じていません。', open, lineCol(s, open).line + ' 行目の「{」に対応する「}」がありません。');
+        if (ch === '"') throw new JsonError('項目のあいだに「,」がありません。', i, '前の値のあとにカンマを足してください。');
+        if (ch === '、' || ch === '，') throw new JsonError('全角の' + show(ch) + 'があります。', i, '半角の「,」に置き換えてください。');
+        throw new JsonError('「,」か「}」が来るところに' + show(ch) + 'があります。', i);
+      }
+    }
+
+    function array(depth) {
+      var open = i, items = [], lastComma = -1;
+      i++;
+      ws();
+      if (s.charAt(i) === ']') { i++; return { t: 'arr', items: items }; }
+      for (;;) {
+        ws();
+        if (s.charAt(i) === ']' && items.length) throw new JsonError('「]」の前に余分な「,」があります。', lastComma, 'JSON では最後の要素の後ろにカンマを書けません。');
+        if (i >= n) throw new JsonError('「[」が閉じていません。', open, lineCol(s, open).line + ' 行目の「[」に対応する「]」がありません。');
+        items.push(value(depth + 1));
+        ws();
+        var ch = s.charAt(i);
+        if (ch === ',') { lastComma = i; i++; continue; }
+        if (ch === ']') { i++; return { t: 'arr', items: items }; }
+        if (i >= n) throw new JsonError('「[」が閉じていません。', open, lineCol(s, open).line + ' 行目の「[」に対応する「]」がありません。');
+        if (ch === '}') throw new JsonError('「]」が来るところに「}」があります。', i, lineCol(s, open).line + ' 行目の「[」を閉じるのは「]」です。');
+        if (ch === '、' || ch === '，') throw new JsonError('全角の' + show(ch) + 'があります。', i, '半角の「,」に置き換えてください。');
+        throw new JsonError('要素のあいだに「,」がありません（' + show(ch) + 'があります）。', i, '前の値のあとにカンマを足してください。');
+      }
+    }
+
+    // 文字列の生の形（引用符を含む）を返す
+    function string() {
+      var start = i;
+      i++;
+      for (;;) {
+        if (i >= n) throw new JsonError('文字列が閉じていません。', start, lineCol(s, start).line + ' 行目で始まる文字列に、閉じる「"」がありません。');
+        var c = s.charCodeAt(i);
+        if (c === 34) { i++; return s.slice(start, i); }
+        if (c === 92) {
+          var e = s.charAt(i + 1);
+          if ('"\\/bfnrt'.indexOf(e) >= 0 && e !== '') { i += 2; continue; }
+          if (e === 'u') {
+            if (!/^[0-9a-fA-F]{4}$/.test(s.substr(i + 2, 4))) throw new JsonError('「\\u」の後ろは 16 進の 4 桁です。', i);
+            i += 6; continue;
+          }
+          throw new JsonError('文字列の中の「\\' + e + '」は JSON のエスケープにありません。', i, '「\\」そのものを書くときは「\\\\」と 2 つ重ねます。');
+        }
+        if (c < 0x20) {
+          if (c === 10 || c === 13) throw new JsonError('文字列の中に改行があります。', i, '改行は「\\n」と書きます。文字列の閉じる「"」を忘れていないかも見てください。');
+          if (c === 9) throw new JsonError('文字列の中にタブがあります。', i, 'タブは「\\t」と書きます。');
+          throw new JsonError('文字列の中に制御文字（U+' + ('000' + c.toString(16).toUpperCase()).slice(-4) + '）があります。', i);
+        }
+        i++;
+      }
+    }
+
+    function number() {
+      var start = i;
+      if (s.charAt(i) === '-') i++;
+      if (s.charAt(i) === '0') {
+        i++;
+        if (/[0-9]/.test(s.charAt(i))) throw new JsonError('数の先頭に 0 を付けられません（「' + s.slice(start, i + 1) + '…」）。', start, '郵便番号や電話番号のように 0 で始まるものは、文字列（"0123"）にしてください。');
+      } else if (/[1-9]/.test(s.charAt(i))) {
+        while (/[0-9]/.test(s.charAt(i))) i++;
+      } else throw new JsonError('「-」の後ろに数字がありません。', i);
+      if (s.charAt(i) === '.') {
+        i++;
+        if (!/[0-9]/.test(s.charAt(i))) throw new JsonError('小数点の後ろに数字がありません。', i, '「1.」ではなく「1.0」か「1」と書きます。');
+        while (/[0-9]/.test(s.charAt(i))) i++;
+      }
+      if (s.charAt(i) === 'e' || s.charAt(i) === 'E') {
+        i++;
+        if (s.charAt(i) === '+' || s.charAt(i) === '-') i++;
+        if (!/[0-9]/.test(s.charAt(i))) throw new JsonError('指数（e）の後ろに数字がありません。', i);
+        while (/[0-9]/.test(s.charAt(i))) i++;
+      }
+      return s.slice(start, i);
+    }
+
+    try {
+      ws();
+      if (i >= n) throw new JsonError('JSON が空です。', i);
+      var v = value(0);
+      ws();
+      if (i < n) {
+        var ch = s.charAt(i);
+        if (ch === ',') throw new JsonError('JSON の終わりのあとに「,」があります。', i, '全体を [ ] で囲むと、いくつもの値を並べられます。');
+        if (ch === '}' || ch === ']') throw new JsonError('閉じかっこ' + show(ch) + 'が多すぎます。', i);
+        throw new JsonError('JSON の終わりのあとに、まだ' + show(ch) + 'が続いています。', i, '1 行に 1 つの JSON（JSON Lines）なら、行ごとに分けて貼ってください。');
+      }
+      return { ok: true, value: v, bom: bom, dupKeys: dupKeys.map(function (d) { var p = lineCol(s, d.index); return { key: d.key, line: p.line, col: p.col }; }) };
+    } catch (e) {
+      if (!(e instanceof JsonError)) throw e;
+      var p = lineCol(s, e.index);
+      return { ok: false, error: { message: e.message, hint: e.hint, index: e.index, line: p.line, col: p.col } };
+    }
+  }
+
+  /** 文字列の生の形 → 値（JSON.parse は 1 つの文字列なら安全に使える） */
+  function decodeString(raw) { return JSON.parse(raw); }
+
+  /**
+   * 整形する。indent は 0（1 行に詰める）・2・4・'\t'。sortKeys なら名前の順（UTF-16 の符号の順）に並べる。
+   * 数と文字列は書いてあったとおりに出す
+   */
+  function format(node, o) {
+    o = o || {};
+    var ind = o.indent === '\t' ? '\t' : ' '.repeat(Number(o.indent) || 0), pretty = ind !== '', out = [];
+    function walk(v, pad) {
+      if (v.t === 'obj') {
+        if (!v.entries.length) { out.push('{}'); return; }
+        var es = v.entries;
+        if (o.sortKeys) es = es.slice().sort(function (x, y) { return x[1] < y[1] ? -1 : x[1] > y[1] ? 1 : 0; });
+        out.push('{');
+        es.forEach(function (e, k) {
+          if (k) out.push(',');
+          if (pretty) out.push('\n', pad + ind);
+          out.push(e[0], pretty ? ': ' : ':');
+          walk(e[2], pad + ind);
+        });
+        if (pretty) out.push('\n', pad);
+        out.push('}');
+      } else if (v.t === 'arr') {
+        if (!v.items.length) { out.push('[]'); return; }
+        out.push('[');
+        v.items.forEach(function (it, k) {
+          if (k) out.push(',');
+          if (pretty) out.push('\n', pad + ind);
+          walk(it, pad + ind);
+        });
+        if (pretty) out.push('\n', pad);
+        out.push(']');
+      } else out.push(v.raw);
+    }
+    walk(node, '');
+    return out.join('');
+  }
+
+  /** 数の中で、ふつうの JavaScript（倍精度）に読むと値が変わるもの */
+  function lossyNumbers(node, limit) {
+    var found = [];
+    (function walk(v) {
+      if (found.length >= (limit || 5)) return;
+      if (v.t === 'obj') v.entries.forEach(function (e) { walk(e[2]); });
+      else if (v.t === 'arr') v.items.forEach(walk);
+      else if (v.t === 'num' && /^-?\d+$/.test(v.raw) && !Number.isSafeInteger(Number(v.raw))) found.push(v.raw);
+    })(node);
+    return found;
+  }
+
+  /**
+   * 表（CSV 用の行）にする。一番外が配列で、要素がオブジェクト（名前 → 値）か配列のとき
+   * - オブジェクトの入れ子は「親.子」の列に広げる。入れ子の配列は JSON の文字列のまま 1 つのセルに
+   * - 列の順は、最初に出てきた順
+   * @returns {{ok: true, rows: string[][]} | {ok: false, error: string}}
+   */
+  function toRows(node) {
+    if (node.t !== 'arr') return { ok: false, error: '一番外が配列（[ … ]）のときだけ表にできます。' };
+    if (!node.items.length) return { ok: false, error: '配列が空です。' };
+    function cell(v) {
+      if (v.t === 'str') return decodeString(v.raw);
+      if (v.t === 'num' || v.t === 'lit') return v.raw === 'null' ? '' : v.raw;
+      return format(v, { indent: 0 });
+    }
+    if (node.items.every(function (x) { return x.t === 'arr'; })) {
+      return { ok: true, header: false, rows: node.items.map(function (r) { return r.items.map(cell); }) };
+    }
+    if (!node.items.every(function (x) { return x.t === 'obj'; })) return { ok: false, error: '配列の要素がオブジェクト（{ … }）か配列（[ … ]）にそろっているときだけ表にできます。' };
+    var cols = [], index = new Map();
+    var flat = node.items.map(function (obj) {
+      var row = new Map();
+      (function walk(o, prefix) {
+        o.entries.forEach(function (e) {
+          var name = prefix + e[1];
+          if (e[2].t === 'obj' && e[2].entries.length) { walk(e[2], name + '.'); return; }
+          if (!index.has(name)) { index.set(name, cols.length); cols.push(name); }
+          row.set(name, cell(e[2]));
+        });
+      })(obj, '');
+      return row;
+    });
+    return { ok: true, header: true, rows: [cols].concat(flat.map(function (r) { return cols.map(function (c) { return r.has(c) ? r.get(c) : ''; }); })) };
+  }
+
+  /** 値の数と深さ（結果の 1 行に出す） */
+  function stats(node) {
+    var count = 0, depth = 0;
+    (function walk(v, d) {
+      count++; if (d > depth) depth = d;
+      if (v.t === 'obj') v.entries.forEach(function (e) { walk(e[2], d + 1); });
+      else if (v.t === 'arr') v.items.forEach(function (x) { walk(x, d + 1); });
+    })(node, 0);
+    return { count: count, depth: depth, kind: node.t };
+  }
+
+  var api = { parse: parse, format: format, toRows: toRows, lossyNumbers: lossyNumbers, stats: stats, lineCol: lineCol };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  else root.HenkanJson = api;
+})(typeof self !== 'undefined' ? self : this);
+
+// ---- lib/csv.js ----
+// ===========================
+// CSV の読み取り・書き出し（画面から切り離した純粋関数。DOM に触らない）
+// ブラウザ・Worker では self.HenkanCsv、Node（テスト）では module.exports
+//
+// 形式は RFC 4180（2005 年、Informational）の 2 章に合わせる:
+//   - 区切りを含む・「"」を含む・改行を含むフィールドは「"」で囲む（6）
+//   - 囲んだフィールドの中の「"」は「""」と 2 つ重ねる（7）
+//   - 最後のレコードの改行はあってもなくてもよい（2）。空白はフィールドの一部（4）
+// 読むときは RFC より広く受け入れる: 改行は CRLF・LF・CR のどれでも、区切りはカンマ・タブ・セミコロン・縦棒、
+//   囲まないフィールドの途中の「"」はそのまま文字として読み、注意を返す
+// ===========================
+(function (root) {
+  'use strict';
+
+  var DELIMS = [',', '\t', ';', '|'];
+  var NAMES = { ',': 'カンマ', '\t': 'タブ', ';': 'セミコロン', '|': '縦棒（|）' };
+
+  /**
+   * 読み取る
+   * @returns {{rows: string[][], warnings: Array<{line, message}>, error: null | {line, message}}}
+   *   line は元のテキストの行番号（1 から）
+   */
+  function parse(text, o) {
+    o = o || {};
+    var s = String(text == null ? '' : text), d = o.delimiter || ',', limit = o.maxRows || Infinity;
+    if (s.charCodeAt(0) === 0xFEFF) s = s.slice(1);
+    var rows = [], row = [], field = '', i = 0, n = s.length, line = 1, warnings = [], error = null;
+    var dc = d.charCodeAt(0);
+    if (n === 0) return { rows: rows, warnings: warnings, error: null };
+    while (i < n) {
+      var c = s.charCodeAt(i);
+      if (c === 34 && field === '') {
+        // 囲んだフィールド
+        var start = line, j = i + 1, buf = [];
+        for (;;) {
+          var q = s.indexOf('"', j);
+          if (q < 0) {
+            error = { line: start, message: start + ' 行目で始まる「"」が閉じていません。' };
+            buf.push(s.slice(j)); line += countNl(s, j, n); i = n; break;
+          }
+          buf.push(s.slice(j, q)); line += countNl(s, j, q);
+          if (s.charCodeAt(q + 1) === 34) { buf.push('"'); j = q + 2; continue; }
+          i = q + 1; break;
+        }
+        field = buf.join('');
+        if (error) { row.push(field); rows.push(row); return { rows: rows, warnings: warnings, error: error }; }
+        // 閉じた「"」のすぐ後ろは区切りか改行か終わり
+        var nc = s.charCodeAt(i);
+        if (i < n && nc !== dc && nc !== 10 && nc !== 13) {
+          if (warnings.length < 20) warnings.push({ line: line, message: line + ' 行目: 閉じた「"」の後ろに文字があります（そのまま続けて読みました）。' });
+          var k = i;
+          while (k < n && s.charCodeAt(k) !== dc && s.charCodeAt(k) !== 10 && s.charCodeAt(k) !== 13) k++;
+          field += s.slice(i, k); i = k;
+        }
+        field = { v: field };   // 空文字でも「囲んだ」ことを覚えておく（下で文字列に戻す）
+        continue;
+      }
+      if (c === dc) { row.push(val(field)); field = ''; i++; continue; }
+      if (c === 10 || c === 13) {
+        row.push(val(field)); field = ''; rows.push(row); row = [];
+        if (rows.length >= limit) return { rows: rows, warnings: warnings, error: null, truncated: true };
+        i += (c === 13 && s.charCodeAt(i + 1) === 10) ? 2 : 1; line++;
+        continue;
+      }
+      // 囲まないフィールド: 次の区切り・改行まで
+      var e = i;
+      while (e < n) { var cc = s.charCodeAt(e); if (cc === dc || cc === 10 || cc === 13) break; e++; }
+      var chunk = s.slice(i, e);
+      if (typeof field === 'object') field = field.v;
+      if (chunk.indexOf('"') >= 0 && warnings.length < 20) warnings.push({ line: line, message: line + ' 行目: 「"」で囲まれていないフィールドの中に「"」があります（文字として読みました）。' });
+      field += chunk; i = e;
+    }
+    // 最後のレコード（終わりに改行が無いとき）
+    if (field !== '' || row.length) { row.push(val(field)); rows.push(row); }
+    return { rows: rows, warnings: warnings, error: null };
+  }
+  function val(f) { return typeof f === 'object' ? f.v : f; }
+  function countNl(s, a, b) {
+    var k = 0;
+    for (var x = a; x < b; x++) { var c = s.charCodeAt(x); if (c === 10 || (c === 13 && s.charCodeAt(x + 1) !== 10)) k++; }
+    return k;
+  }
+
+  /**
+   * 区切り文字を推定する。先頭の 100 レコードを各候補で読み、列の数がそろっていて 2 列以上のものを選ぶ
+   * @returns {{delimiter: string, name: string, columns: number, sure: boolean}}
+   */
+  function detect(text) {
+    var sample = String(text || '').slice(0, 200000), best = null;
+    DELIMS.forEach(function (d, rank) {
+      var r = parse(sample, { delimiter: d, maxRows: 100 });
+      var rows = r.rows.filter(function (x) { return !(x.length === 1 && x[0] === ''); });
+      if (rows.length > 1 && sample.length >= 200000) rows.pop();   // 切った末尾の半端な行は数えない
+      if (!rows.length) return;
+      var counts = new Map();
+      rows.forEach(function (x) { counts.set(x.length, (counts.get(x.length) || 0) + 1); });
+      var mode = 0, freq = 0;
+      counts.forEach(function (f, k) { if (f > freq || (f === freq && k > mode)) { mode = k; freq = f; } });
+      var score = mode > 1 ? (freq / rows.length) * 1000 + Math.min(mode, 50) - rank * 0.1 : 0;
+      if (!best || score > best.score) best = { delimiter: d, score: score, columns: mode, consistent: freq === rows.length };
+    });
+    if (!best || best.score === 0) return { delimiter: ',', name: NAMES[','], columns: 1, sure: false };
+    return { delimiter: best.delimiter, name: NAMES[best.delimiter], columns: best.columns, sure: best.consistent };
+  }
+
+  /**
+   * 書き出す
+   * @param {string[][]} rows
+   * @param {{delimiter?: string, quote?: 'auto'|'all', eol?: '\r\n'|'\n', bom?: boolean}} o
+   *   quote 'auto' は RFC 4180 の 6 のとおり、区切り・「"」・改行を含むフィールドだけ囲む
+   *   （先頭・末尾に空白があるフィールドも、読み手が削らないよう囲む）
+   */
+  function stringify(rows, o) {
+    o = o || {};
+    var d = o.delimiter || ',', eol = o.eol || '\r\n', all = o.quote === 'all';
+    var out = rows.map(function (r) {
+      return r.map(function (f) {
+        var v = f == null ? '' : String(f);
+        if (all || v.indexOf(d) >= 0 || /["\r\n]/.test(v) || /^\s|\s$/.test(v)) return '"' + v.replace(/"/g, '""') + '"';
+        return v;
+      }).join(d);
+    }).join(eol);
+    if (rows.length) out += eol;
+    return (o.bom ? '﻿' : '') + out;
+  }
+
+  /**
+   * JSON にする。header なら 1 行目を名前にしたオブジェクトの配列、そうでなければ配列の配列。
+   * numbers なら「0 で始まらない整数・小数」だけを数にする（郵便番号・電話番号の先頭の 0 を落とさない）
+   */
+  function toJson(rows, o) {
+    o = o || {};
+    function conv(v) {
+      if (o.numbers && /^-?(0|[1-9]\d*)(\.\d+)?$/.test(v)) {
+        var num = Number(v);
+        if (Number.isSafeInteger(num) || (/\./.test(v) && String(num) === v.replace(/^(-?)0*(\d)/, '$1$2'))) return num;
+      }
+      return v;
+    }
+    var indent = o.indent == null ? 2 : o.indent;
+    if (!o.header) return JSON.stringify(rows.map(function (r) { return r.map(conv); }), null, indent);
+    var names = uniqueNames(rows[0] || []);
+    var list = rows.slice(1).map(function (r) {
+      var obj = {};
+      names.forEach(function (name, k) { obj[name] = conv(r[k] == null ? '' : r[k]); });
+      for (var x = names.length; x < r.length; x++) obj['列' + (x + 1)] = conv(r[x]);
+      return obj;
+    });
+    return JSON.stringify(list, null, indent);
+  }
+
+  /** 見出しの名前をそろえる（空は「列N」、重なりは「名前_2」） */
+  function uniqueNames(head) {
+    var seen = new Map();
+    return head.map(function (h, k) {
+      var base = String(h).trim() === '' ? '列' + (k + 1) : String(h), name = base, c = 1;
+      while (seen.has(name)) { c++; name = base + '_' + c; }
+      seen.set(name, true);
+      return name;
+    });
+  }
+
+  /**
+   * ファイルのバイト列を文字にする。UTF-8（BOM あり・なし）として読めなければ Shift_JIS（Windows-31J）として読む
+   * @param {Uint8Array} bytes
+   * @returns {{text: string, encoding: string}}
+   */
+  function decode(bytes) {
+    var bomless = bytes;
+    if (bytes[0] === 0xEF && bytes[1] === 0xBB && bytes[2] === 0xBF) return { text: new TextDecoder('utf-8').decode(bytes.subarray(3)), encoding: 'UTF-8（BOM あり）' };
+    if (bytes[0] === 0xFF && bytes[1] === 0xFE) return { text: new TextDecoder('utf-16le').decode(bytes.subarray(2)), encoding: 'UTF-16LE' };
+    if (bytes[0] === 0xFE && bytes[1] === 0xFF) return { text: new TextDecoder('utf-16be').decode(bytes.subarray(2)), encoding: 'UTF-16BE' };
+    try { return { text: new TextDecoder('utf-8', { fatal: true }).decode(bomless), encoding: 'UTF-8' }; } catch (e) { /* 次へ */ }
+    try { return { text: new TextDecoder('shift_jis').decode(bytes), encoding: 'Shift_JIS' }; } catch (e) { /* 次へ */ }
+    return { text: new TextDecoder('utf-8').decode(bytes), encoding: 'UTF-8（読めない字あり）' };
+  }
+
+  var api = { parse: parse, detect: detect, stringify: stringify, toJson: toJson, uniqueNames: uniqueNames, decode: decode, NAMES: NAMES };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  else root.HenkanCsv = api;
+})(typeof self !== 'undefined' ? self : this);
+
+// ---- lib/ops.js ----
+// ===========================
+// 画面が頼む処理の一覧（Worker の中でも、Worker が使えないときは画面側でも同じものを呼ぶ）
+// 受け取る args は配列。結果は構造化複製できる値だけ（関数・DOM を入れない）
+// ===========================
+/* global HenkanDiff, HenkanJson, HenkanCsv, HenkanKana */
+(function (root) {
+  'use strict';
+  var OPS = {
+    diffLines: function (a) { return HenkanDiff.diffLines(a[0], a[1], a[2]); },
+    diffChars: function (a) { return HenkanDiff.diffChars(a[0], a[1], a[2]); },
+    unified: function (a) { return HenkanDiff.unified(HenkanDiff.diffLines(a[0], a[1], Object.assign({}, a[2], { inline: false })), a[3]); },
+    json: function (a) {
+      // 読む → 整形（と表にする）までを 1 回で。大きな木を画面側に送らない
+      var r = HenkanJson.parse(a[0]);
+      if (!r.ok) return r;
+      var o = a[1] || {};
+      var out = { ok: true, bom: r.bom, dupKeys: r.dupKeys.slice(0, 20), dupCount: r.dupKeys.length, stats: HenkanJson.stats(r.value), lossy: HenkanJson.lossyNumbers(r.value, 5) };
+      if (o.mode === 'csv') {
+        var t = HenkanJson.toRows(r.value);
+        if (!t.ok) { out.tableError = t.error; out.text = ''; }
+        else { out.rows = t.rows.length - (t.header ? 1 : 0); out.cols = t.rows[0] ? t.rows[0].length : 0; out.header = t.header; out.text = HenkanCsv.stringify(t.rows, o.csv || {}); out.preview = t.rows.slice(0, 51); }
+      } else out.text = HenkanJson.format(r.value, { indent: o.mode === 'min' ? 0 : o.indent, sortKeys: o.sortKeys });
+      return out;
+    },
+    csv: function (a) {
+      var text = a[0], o = a[1] || {};
+      var det = HenkanCsv.detect(text);
+      var d = o.delimiter && o.delimiter !== 'auto' ? o.delimiter : det.delimiter;
+      var r = HenkanCsv.parse(text, { delimiter: d });
+      var rows = r.rows, widths = {};
+      rows.forEach(function (x) { widths[x.length] = (widths[x.length] || 0) + 1; });
+      var out = { detected: det, delimiter: d, rowCount: rows.length, widths: widths, warnings: r.warnings, error: r.error, preview: rows.slice(0, 101) };
+      if (o.mode === 'json') out.text = HenkanCsv.toJson(rows, { header: o.header, numbers: o.numbers });
+      else out.text = HenkanCsv.stringify(rows, { delimiter: o.outDelimiter === 'same' ? d : (o.outDelimiter || ','), quote: o.quote, eol: o.eol, bom: false });
+      return out;
+    },
+    kana: function (a) { return HenkanKana.convert(a[0], a[1]); },
+  };
+
+  root.HenkanOps = OPS;
+})(typeof self !== 'undefined' ? self : this);
+
+// ---- lib/worker.js ----
+// ===========================
+// 重い処理を画面の外で動かす Web Worker（数 MB の入力でも画面が固まらないように）
+// 受け取る: { id, op, args }。返す: { id, ok: true, result } か { id, ok: false, error }
+// ページが分かれた版（/henkan/diff/ など）は importScripts で読み、1 ファイル版（henkan.html）は
+// ビルドがこのファイルの前に lib/*.js をつなげて Blob にするので、読み込みは要らない
+// ===========================
+/* global importScripts */
+'use strict';
+if (typeof self.HenkanOps === 'undefined') importScripts('kana.js', 'diff.js', 'json.js', 'csv.js', 'ops.js');
+
+self.onmessage = function (e) {
+  var m = e.data || {};
+  try {
+    var t0 = Date.now();
+    var result = self.HenkanOps[m.op](m.args || []);
+    self.postMessage({ id: m.id, ok: true, result: result, ms: Date.now() - t0 });
+  } catch (err) {
+    self.postMessage({ id: m.id, ok: false, error: String(err && err.message || err) });
+  }
+};
+
+</script>
+<script>
+// ---- lib/kana.js ----
+// ===========================
+// 全角・半角・かなの変換（画面から切り離した純粋関数。DOM に触らない）
+// ブラウザ・Worker では self.HenkanKana、Node（テスト）では module.exports
+//
+// 対応表（README「全角・半角の対応表」と guide にも同じことを書く）:
+// - 英数・記号: U+FF01〜U+FF5E（全角）⇔ U+0021〜U+007E（半角）の 1 対 1 だけ。
+//   ￥（U+FFE5）・￣（U+FFE3）・〜（U+301C 波ダッシュ）などはこの範囲の外なので変えない
+// - 空白: U+3000（全角スペース）⇔ U+0020
+// - カタカナ: 半角カタカナ（U+FF61〜U+FF9F）⇔ 全角。濁点・半濁点（ﾞ ﾟ）は前の字と 1 文字に合わせる（ｶﾞ→ガ、ﾊﾟ→パ、ｳﾞ→ヴ、ﾜﾞ→ヷ、ｦﾞ→ヺ）。
+//   前の字と合わせられない ﾞ ﾟ は ゛ ゜（U+309B・U+309C）にする（NFKC は結合用の U+3099・U+309A にしてしまう）
+//   全角 → 半角で、半角の字が無いもの（ヰ ヱ ヮ ヵ ヶ ヸ ヹ）は変えずに残し、数を返す（別の字に置き換えない）
+// - ひらがな ⇔ カタカナ: ぁ〜ゖ ⇔ ァ〜ヶ、ゝゞ ⇔ ヽヾ。ヷ ヸ ヹ ヺ はひらがなが無いので残す
+// ===========================
+(function (root) {
+  'use strict';
+
+  // 半角カタカナ（U+FF61〜U+FF9D）→ 全角。添え字 = コード − 0xFF61
+  var HALF_KANA = '。「」、・ヲァィゥェォャュョッーアイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワン';
+  var H2F = {}, F2H = {};
+  for (var i = 0; i < HALF_KANA.length; i++) {
+    var h = String.fromCharCode(0xFF61 + i), f = HALF_KANA.charAt(i);
+    H2F[h] = f; F2H[f] = h;
+  }
+  H2F['ﾞ'] = '゛'; H2F['ﾟ'] = '゜';
+  F2H['゛'] = 'ﾞ'; F2H['゜'] = 'ﾟ';
+  F2H['゙'] = 'ﾞ'; F2H['゚'] = 'ﾟ';   // 結合用の濁点・半濁点（分解された形の ガ など）
+  // 濁点・半濁点つき: 全角 1 文字 ⇔ 半角 2 文字
+  var VOICED = {}, VOICED_REV = {};
+  function addVoiced(base, list, mark) {
+    for (var k = 0; k < base.length; k++) {
+      var full = list.charAt(k), half = F2H[base.charAt(k)] + mark;
+      VOICED[half] = full; VOICED_REV[full] = half;
+    }
+  }
+  addVoiced('カキクケコサシスセソタチツテトハヒフヘホ', 'ガギグゲゴザジズゼゾダヂヅデドバビブベボ', 'ﾞ');
+  addVoiced('ハヒフヘホ', 'パピプペポ', 'ﾟ');
+  addVoiced('ウワヲ', 'ヴヷヺ', 'ﾞ');
+  // 半角の字が無いカタカナ（全角 → 半角で残すもの）
+  var NO_HALF = 'ヰヱヮヵヶヸヹヽヾ';
+
+  function isAlnum(c) { return (c >= 0x30 && c <= 0x39) || (c >= 0x41 && c <= 0x5A) || (c >= 0x61 && c <= 0x7A); }
+
+  /**
+   * 変換する。opts の各項目は 'none'（変えない）か、下の値
+   *   alnum:  'half' | 'full'   英字と数字
+   *   symbol: 'half' | 'full'   ASCII の記号（! " # … ~）と、その全角
+   *   space:  'half' | 'full'   空白（U+0020 ⇔ U+3000）
+   *   kana:   'half' | 'full'   カタカナと、半角カナの区画にある 。「」、・ー ゛゜
+   *   hira:   'kata' | 'hira'   ひらがな ⇔ カタカナ（kana の前にかける）
+   *   tidy:   { trimEnd, collapseSpaces, blankLines: 'keep'|'one'|'none', eol: 'keep'|'lf'|'crlf', trimEdges }
+   *   nfkc:   true なら最後に String.prototype.normalize('NFKC')
+   * @returns {{text: string, changed: number, pairs: Object<string, number>, kept: Object<string, number>}}
+   *   pairs は「元→後」ごとの数（表示用）、kept は半角にできずに残したカタカナの数
+   */
+  function convert(text, opts) {
+    opts = opts || {};
+    var s = String(text == null ? '' : text);
+    var pairs = {}, kept = {}, changed = 0;
+    function note(from, to) { var k = from + '→' + to; pairs[k] = (pairs[k] || 0) + 1; changed++; }
+
+    // ひらがな → カタカナは幅より先に（がっこう → ｶﾞｯｺｳ）、カタカナ → ひらがなは幅より後に（ｶﾞｯｺｳ → がっこう）
+    var widthOn = opts.alnum === 'half' || opts.alnum === 'full' || opts.symbol === 'half' || opts.symbol === 'full' ||
+        opts.space === 'half' || opts.space === 'full' || opts.kana === 'half' || opts.kana === 'full';
+    if (opts.hira === 'kata') s = hiraKata(s, 'kata', note);
+    if (widthOn) s = width(s, opts, note, kept);
+    if (opts.hira === 'hira') s = hiraKata(s, 'hira', note);
+    if (opts.tidy) s = tidy(s, opts.tidy);   // 空白・改行の整理は字の置き換えではないので pairs に入れない
+    if (opts.nfkc) {
+      var n = s.normalize('NFKC');
+      if (n !== s) pairs['NFKC 正規化'] = (pairs['NFKC 正規化'] || 0) + 1;
+      s = n;
+    }
+    return { text: s, changed: changed, pairs: pairs, kept: kept };
+  }
+
+  function hiraKata(s, dir, note) {
+    var out = [], from = dir === 'kata' ? 0x3041 : 0x30A1, to = dir === 'kata' ? 0x3096 : 0x30F6, d = dir === 'kata' ? 0x60 : -0x60;
+    for (var i = 0; i < s.length; i++) {
+      var c = s.charCodeAt(i), r = null;
+      if (c >= from && c <= to) r = String.fromCharCode(c + d);
+      else if (dir === 'kata' && (c === 0x309D || c === 0x309E)) r = String.fromCharCode(c + 0x60);   // ゝゞ → ヽヾ
+      else if (dir === 'hira' && (c === 0x30FD || c === 0x30FE)) r = String.fromCharCode(c - 0x60);   // ヽヾ → ゝゞ
+      if (r !== null) { note(s.charAt(i), r); out.push(r); } else out.push(s.charAt(i));
+    }
+    return out.join('');
+  }
+
+  function width(s, o, note, kept) {
+    var out = [];
+    for (var i = 0; i < s.length; i++) {
+      var ch = s.charAt(i), c = s.charCodeAt(i), r = null;
+      // 英数・記号（全角 → 半角）
+      if (c >= 0xFF01 && c <= 0xFF5E) {
+        var a = c - 0xFEE0;
+        if (isAlnum(a) ? o.alnum === 'half' : o.symbol === 'half') r = String.fromCharCode(a);
+      } else if (c >= 0x21 && c <= 0x7E) {
+        if (isAlnum(c) ? o.alnum === 'full' : o.symbol === 'full') r = String.fromCharCode(c + 0xFEE0);
+      } else if (c === 0x3000) {
+        if (o.space === 'half') r = ' ';
+      } else if (c === 0x20) {
+        if (o.space === 'full') r = '　';
+      } else if (c >= 0xFF61 && c <= 0xFF9F) {
+        // 半角カナ → 全角（後ろの ﾞ ﾟ と合わせる）
+        if (o.kana === 'full') {
+          var two = s.substr(i, 2);
+          if (VOICED[two]) { note(two, VOICED[two]); out.push(VOICED[two]); i++; continue; }
+          r = H2F[ch];
+        }
+      } else if (o.kana === 'half') {
+        // 全角カナ → 半角。分解された形（カ＋U+3099）も合わせて 1 つとして数える
+        if (VOICED_REV[ch]) r = VOICED_REV[ch];
+        else if (F2H[ch]) r = F2H[ch];
+        else if (NO_HALF.indexOf(ch) >= 0) kept[ch] = (kept[ch] || 0) + 1;
+        if (r !== null && F2H[ch] && (s.charAt(i + 1) === '゙' || s.charAt(i + 1) === '゚')) {
+          var mark = F2H[s.charAt(i + 1)];
+          note(ch + s.charAt(i + 1), r + mark); out.push(r + mark); i++; continue;
+        }
+      }
+      if (r !== null && r !== ch) { note(ch, r); out.push(r); } else out.push(ch);
+    }
+    return out.join('');
+  }
+
+  /** 空白・改行の整理 */
+  function tidy(s, t) {
+    var eol = /\r\n/.test(s) ? '\r\n' : '\n';
+    if (t.eol === 'lf') eol = '\n'; else if (t.eol === 'crlf') eol = '\r\n';
+    var lines = s.split(/\r\n|\n|\r/);
+    if (t.collapseSpaces) lines = lines.map(function (l) { return l.replace(/[ \t　]{2,}/g, function (m) { return m.charAt(0); }); });
+    if (t.trimEnd) lines = lines.map(function (l) { return l.replace(/[ \t　]+$/, ''); });
+    if (t.blankLines === 'one' || t.blankLines === 'none') {
+      var out = [], prevBlank = false;
+      lines.forEach(function (l) {
+        var blank = /^[ \t　]*$/.test(l);
+        if (blank && (t.blankLines === 'none' || prevBlank)) return;
+        out.push(l); prevBlank = blank;
+      });
+      lines = out;
+    }
+    if (t.trimEdges) {
+      while (lines.length > 1 && /^[ \t　]*$/.test(lines[0])) lines.shift();
+      while (lines.length > 1 && /^[ \t　]*$/.test(lines[lines.length - 1])) lines.pop();
+    }
+    return lines.join(eol);
+  }
+
+  /**
+   * 差分で「全角・半角を同じとみなす」ための比べる形（表示には使わない）。
+   * 英数記号と空白は半角に、半角カナは全角に（濁点を合わせる）
+   */
+  function foldWidth(s) {
+    return width(String(s), { alnum: 'half', symbol: 'half', space: 'half', kana: 'full' }, function () {}, {});
+  }
+
+  var api = { convert: convert, foldWidth: foldWidth, tidy: tidy, NO_HALF: NO_HALF };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  else root.HenkanKana = api;
+})(typeof self !== 'undefined' ? self : this);
+
+// ---- lib/diff.js ----
+// ===========================
+// テキストの差分（画面から切り離した純粋関数。DOM に触らない）
+// ブラウザ・Worker では self.HenkanDiff、Node（テスト）では module.exports
+//
+// 手法: Myers の O(ND) 差分アルゴリズムの線形空間版（中央のスネークで分割）。
+//   E. W. Myers, "An O(ND) Difference Algorithm and Its Variations", Algorithmica 1 (1986) 251-266。
+//   分割の書き方は GNU diffutils の diffseq.h（compareseq / diag）と同じ形で、コードは自分で書いた。
+// 速さのための工夫（どれも「最短の差分」を変えないもの。4 だけが例外で、そのときは approx を立てる）:
+//   1. 前後の一致をはじめに切り落とす
+//   2. 相手側に 1 回も出てこない行（字）は、必ず削除・追加なので、比べる列から外す
+//   3. 比べる単位（行・字）は整数に置き換えて比べる
+//   4. 1 回の分割で探す深さに上限（入力が大きいほど小さい）。超えたら GNU diff と同じ近似で分ける
+// ===========================
+(function (root) {
+  'use strict';
+
+  var Kana = (typeof module !== 'undefined' && module.exports) ? require('./kana.js') : root.HenkanKana;
+
+  /**
+   * 整数の列 a・b の差分。削除・追加の印（1）を返す
+   * @returns {{da: Uint8Array, db: Uint8Array, approx: boolean}}
+   */
+  function compare(a, b) {
+    var n = a.length, m = b.length;
+    var da = new Uint8Array(n), db = new Uint8Array(m);
+    // 2. 相手に無い要素を外す
+    var inB = new Set(), inA = new Set(), i;
+    for (i = 0; i < m; i++) inB.add(b[i]);
+    for (i = 0; i < n; i++) inA.add(a[i]);
+    var ia = [], ib = [];
+    for (i = 0; i < n; i++) { if (inB.has(a[i])) ia.push(i); else da[i] = 1; }
+    for (i = 0; i < m; i++) { if (inA.has(b[i])) ib.push(i); else db[i] = 1; }
+    var A = new Int32Array(ia.length), B = new Int32Array(ib.length);
+    for (i = 0; i < ia.length; i++) A[i] = a[ia[i]];
+    for (i = 0; i < ib.length; i++) B[i] = b[ib[i]];
+    var N = A.length, M = B.length;
+    var fa = new Uint8Array(N), fb = new Uint8Array(M);
+    var approx = false;
+    if (N && M) approx = seq(A, B, fa, fb);
+    else { fa.fill(1); fb.fill(1); }
+    for (i = 0; i < N; i++) if (fa[i]) da[ia[i]] = 1;
+    for (i = 0; i < M; i++) if (fb[i]) db[ib[i]] = 1;
+    return { da: da, db: db, approx: approx };
+  }
+
+  // 線形空間の Myers。再帰は明示のスタックで（深い再帰でスタックがあふれないように）
+  function seq(A, B, fa, fb) {
+    var N = A.length, M = B.length, off = M + 1, size = N + M + 3;
+    var fd = new Int32Array(size), bd = new Int32Array(size);
+    var BIG = 0x3fffffff, approx = false;
+    // 4. 深さの上限。小さい入力では実質無制限（最短）、大きい入力では 1 回の探索を (N+M)×上限 に抑える
+    var tooExpensive = Math.max(256, Math.floor(4e7 / (N + M)));
+    var stack = [0, N, 0, M];
+    while (stack.length) {
+      var ylim = stack.pop(), yoff = stack.pop(), xlim = stack.pop(), xoff = stack.pop();
+      while (xoff < xlim && yoff < ylim && A[xoff] === B[yoff]) { xoff++; yoff++; }
+      while (xlim > xoff && ylim > yoff && A[xlim - 1] === B[ylim - 1]) { xlim--; ylim--; }
+      if (xoff === xlim) { for (var y0 = yoff; y0 < ylim; y0++) fb[y0] = 1; continue; }
+      if (yoff === ylim) { for (var x0 = xoff; x0 < xlim; x0++) fa[x0] = 1; continue; }
+      // 中央のスネークを探す
+      var dmin = xoff - ylim, dmax = xlim - yoff, fmid = xoff - yoff, bmid = xlim - ylim;
+      var fmin = fmid, fmax = fmid, bmin = bmid, bmax = bmid, odd = (fmid - bmid) & 1;
+      fd[fmid + off] = xoff; bd[bmid + off] = xlim;
+      var sx = -1, sy = -1, d, x, y, tlo, thi;
+      for (var c = 1; ; c++) {
+        if (fmin > dmin) fd[--fmin - 1 + off] = -1; else ++fmin;
+        if (fmax < dmax) fd[++fmax + 1 + off] = -1; else --fmax;
+        for (d = fmax; d >= fmin; d -= 2) {
+          tlo = fd[d - 1 + off]; thi = fd[d + 1 + off];
+          x = tlo >= thi ? tlo + 1 : thi; y = x - d;
+          while (x < xlim && y < ylim && A[x] === B[y]) { x++; y++; }
+          fd[d + off] = x;
+          if (odd && bmin <= d && d <= bmax && bd[d + off] <= x) { sx = x; sy = y; break; }
+        }
+        if (sx >= 0) break;
+        if (bmin > dmin) bd[--bmin - 1 + off] = BIG; else ++bmin;
+        if (bmax < dmax) bd[++bmax + 1 + off] = BIG; else --bmax;
+        for (d = bmax; d >= bmin; d -= 2) {
+          tlo = bd[d - 1 + off]; thi = bd[d + 1 + off];
+          x = tlo < thi ? tlo : thi - 1; y = x - d;
+          while (x > xoff && y > yoff && A[x - 1] === B[y - 1]) { x--; y--; }
+          bd[d + off] = x;
+          if (!odd && fmin <= d && d <= fmax && x <= fd[d + off]) { sx = x; sy = y; break; }
+        }
+        if (sx >= 0) break;
+        if (c >= tooExpensive) {
+          // GNU diff と同じ近似: いちばん進んだ対角線で分ける（最短とは限らない）
+          approx = true;
+          var fxy = -1, fx = 0, bxy = BIG, bx = 0;
+          for (d = fmax; d >= fmin; d -= 2) {
+            x = Math.min(fd[d + off], xlim); y = x - d;
+            if (ylim < y) { x = ylim + d; y = ylim; }
+            if (fxy < x + y) { fxy = x + y; fx = x; }
+          }
+          for (d = bmax; d >= bmin; d -= 2) {
+            x = Math.max(xoff, bd[d + off]); y = x - d;
+            if (y < yoff) { x = yoff + d; y = yoff; }
+            if (x + y < bxy) { bxy = x + y; bx = x; }
+          }
+          if ((xlim + ylim) - bxy < fxy - (xoff + yoff)) { sx = fx; sy = fxy - fx; } else { sx = bx; sy = bxy - bx; }
+          break;
+        }
+      }
+      stack.push(sx, xlim, sy, ylim);
+      stack.push(xoff, sx, yoff, sy);
+    }
+    return approx;
+  }
+
+  /** 文字列の列を整数の列にする（同じ比べる形 → 同じ番号） */
+  function intern(keysA, keysB) {
+    var map = new Map(), a = new Int32Array(keysA.length), b = new Int32Array(keysB.length), i, id;
+    for (i = 0; i < keysA.length; i++) { id = map.get(keysA[i]); if (id === undefined) { id = map.size; map.set(keysA[i], id); } a[i] = id; }
+    for (i = 0; i < keysB.length; i++) { id = map.get(keysB[i]); if (id === undefined) { id = map.size; map.set(keysB[i], id); } b[i] = id; }
+    return { a: a, b: b };
+  }
+
+  /** 比べる形（表示は元の文字のまま） */
+  function keyFn(o) {
+    o = o || {};
+    return function (s) {
+      if (o.width) s = Kana.foldWidth(s);
+      if (o.space) s = s.replace(/\s+/g, '');   // \s は全角スペース（U+3000）も含む
+      if (o.caseless) s = s.toLowerCase();
+      return s;
+    };
+  }
+
+  /** 行に分ける。改行は CRLF・LF・CR のどれでもよい */
+  function splitLines(text) {
+    var t = String(text == null ? '' : text);
+    var crlf = (t.match(/\r\n/g) || []).length, lf = (t.match(/\n/g) || []).length - crlf, cr = (t.match(/\r(?!\n)/g) || []).length;
+    var eol = crlf + lf + cr === 0 ? 'なし' : crlf >= lf && crlf >= cr ? 'CRLF' : lf >= cr ? 'LF' : 'CR';
+    if (t === '') return { lines: [], finalEol: true, eol: eol };
+    var lines = t.split(/\r\n|\n|\r/), finalEol = lines[lines.length - 1] === '';
+    if (finalEol) lines.pop();
+    return { lines: lines, finalEol: finalEol, eol: eol };
+  }
+
+  /** 印（da・db）から、同じ所と変わった所の並びを作る */
+  function hunksOf(da, db) {
+    var out = [], i = 0, j = 0, n = da.length, m = db.length;
+    while (i < n || j < m) {
+      var i0 = i, j0 = j;
+      while (i < n && j < m && !da[i] && !db[j]) { i++; j++; }
+      if (i > i0) out.push({ t: 'eq', a0: i0, a1: i, b0: j0, b1: j });
+      i0 = i; j0 = j;
+      while (i < n && da[i]) i++;
+      while (j < m && db[j]) j++;
+      if (i > i0 || j > j0) out.push({ t: 'ch', a0: i0, a1: i, b0: j0, b1: j });
+      if (i === i0 && j === j0 && (i < n || j < m)) {   // 念のため（ここには来ない）
+        if (i < n) { da[i] = 1; } else { db[j] = 1; }
+      }
+    }
+    return out;
+  }
+
+  /**
+   * 行単位の差分。変わった行の組には、字単位の強調（inline）を付ける
+   * @param {{space?:boolean, caseless?:boolean, width?:boolean, inline?:boolean}} o
+   */
+  function diffLines(textA, textB, o) {
+    o = o || {};
+    var A = splitLines(textA), B = splitLines(textB), key = keyFn(o);
+    var ids = intern(A.lines.map(key), B.lines.map(key));
+    var r = compare(ids.a, ids.b);
+    var hunks = hunksOf(r.da, r.db), add = 0, del = 0, pairsDone = 0;
+    hunks.forEach(function (h) {
+      if (h.t !== 'ch') return;
+      del += h.a1 - h.a0; add += h.b1 - h.b0;
+      if (o.inline === false) return;
+      // 同じ位置の行どうしを字単位で比べ、似ている組だけ強調する
+      var k = Math.min(h.a1 - h.a0, h.b1 - h.b0);
+      for (var p = 0; p < k && pairsDone < 3000; p++) {
+        var la = A.lines[h.a0 + p], lb = B.lines[h.b0 + p];
+        if (la.length > 3000 || lb.length > 3000) continue;
+        pairsDone++;
+        var c = diffChars(la, lb, o);
+        if (c.same / Math.max(1, Math.max(c.lenA, c.lenB)) < 0.35) continue;   // ほとんど違う行は行ごとの色だけ
+        (h.inline || (h.inline = []))[p] = { a: c.a, b: c.b };
+      }
+    });
+    return {
+      mode: 'line', hunks: hunks, linesA: A.lines, linesB: B.lines, approx: r.approx,
+      add: add, del: del, same: A.lines.length - del,
+      eolA: A.eol, eolB: B.eol, finalEolA: A.finalEol, finalEolB: B.finalEol,
+    };
+  }
+
+  /** 字に分ける。結合する濁点・半濁点・合字の印は前の字と 1 つにする */
+  var JOIN = /[̀-゙゚ͯﾞﾟ︀-️‍]/;
+  function tokens(s) {
+    var out = [], cur = '';
+    for (var ch of String(s)) {
+      if (cur && JOIN.test(ch)) cur += ch;
+      else { if (cur) out.push(cur); cur = ch; }
+    }
+    if (cur) out.push(cur);
+    return out;
+  }
+
+  /**
+   * 字単位の差分。a・b は [種類, 文字] の並び（'=' 同じ、'-' 削除、'+' 追加）。inline は 1 本にまとめた並び
+   * 空白を無視するときは、空白を比べる列から外し、同じ扱いで表示する
+   */
+  function diffChars(textA, textB, o) {
+    o = o || {};
+    var ta = tokens(textA), tb = tokens(textB), key = keyFn(o);
+    var ka = ta.map(key), kb = tb.map(key);
+    var skipA = new Uint8Array(ta.length), skipB = new Uint8Array(tb.length), xa = [], xb = [], i;
+    for (i = 0; i < ta.length; i++) { if (o.space && ka[i] === '') skipA[i] = 1; else xa.push(i); }
+    for (i = 0; i < tb.length; i++) { if (o.space && kb[i] === '') skipB[i] = 1; else xb.push(i); }
+    var ids = intern(xa.map(function (x) { return ka[x]; }), xb.map(function (x) { return kb[x]; }));
+    var r = compare(ids.a, ids.b);
+    var fa = new Uint8Array(ta.length), fb = new Uint8Array(tb.length), same = 0;
+    for (i = 0; i < xa.length; i++) if (r.da[i]) fa[xa[i]] = 1;
+    for (i = 0; i < xb.length; i++) if (r.db[i]) fb[xb[i]] = 1;
+    for (i = 0; i < xa.length; i++) if (!r.da[i]) same++;
+    function runs(tok, flag, skip, mark) {
+      var out = [];
+      for (var k = 0; k < tok.length; k++) {
+        var t = flag[k] ? mark : '=';
+        if (out.length && out[out.length - 1][0] === t) out[out.length - 1][1] += tok[k];
+        else out.push([t, tok[k]]);
+      }
+      return out;
+    }
+    // 1 本にまとめた並び（同じ所は新しい方の字で出す。無視した A の空白は出さない）
+    var inline = [], p = 0, q = 0, add = 0, del = 0;
+    function push(t, s) { if (inline.length && inline[inline.length - 1][0] === t) inline[inline.length - 1][1] += s; else inline.push([t, s]); }
+    while (p < ta.length || q < tb.length) {
+      if (p < ta.length && skipA[p]) { p++; continue; }
+      if (q < tb.length && skipB[q]) { push('=', tb[q]); q++; continue; }
+      if (p < ta.length && fa[p]) { push('-', ta[p]); del++; p++; continue; }
+      if (q < tb.length && fb[q]) { push('+', tb[q]); add++; q++; continue; }
+      if (p < ta.length && q < tb.length) { push('=', tb[q]); p++; q++; continue; }
+      if (p < ta.length) { push('-', ta[p]); del++; p++; } else { push('+', tb[q]); add++; q++; }
+    }
+    return {
+      mode: 'char', a: runs(ta, fa, skipA, '-'), b: runs(tb, fb, skipB, '+'), inline: inline,
+      add: add, del: del, same: same, lenA: xa.length, lenB: xb.length, approx: r.approx,
+    };
+  }
+
+  /**
+   * unified diff の文字列（diff -u と同じ形。見出しの日時は付けない）
+   * 同じ所は A の行を出す。行末の改行が無い最後の行には「\ No newline at end of file」
+   */
+  function unified(res, o) {
+    o = o || {};
+    var ctx = o.context == null ? 3 : o.context, H = res.hunks, out = [];
+    if (!H.some(function (h) { return h.t === 'ch'; })) return '';
+    out.push('--- ' + (o.nameA || 'A'), '+++ ' + (o.nameB || 'B'));
+    var nA = res.linesA.length, nB = res.linesB.length;
+    // 変わった所ごとに前後 ctx 行をつけ、近いものはまとめる
+    var groups = [], cur = null;
+    H.forEach(function (h) {
+      if (h.t !== 'ch') return;
+      var a0 = Math.max(0, h.a0 - ctx), b0 = Math.max(0, h.b0 - ctx);
+      if (cur && h.a0 - cur.lastA1 <= 2 * ctx) { cur.list.push(h); cur.lastA1 = h.a1; cur.lastB1 = h.b1; }
+      else { cur = { a0: a0, b0: b0, list: [h], lastA1: h.a1, lastB1: h.b1 }; groups.push(cur); }
+    });
+    function range(start, count) {
+      var s = count === 0 ? start : start + 1;
+      return count === 1 ? String(s) : s + ',' + count;
+    }
+    groups.forEach(function (g) {
+      var a1 = Math.min(nA, g.lastA1 + ctx), b1 = Math.min(nB, g.lastB1 + ctx);
+      out.push('@@ -' + range(g.a0, a1 - g.a0) + ' +' + range(g.b0, b1 - g.b0) + ' @@');
+      var ai = g.a0, bi = g.b0;
+      function line(prefix, side, idx) {
+        out.push(prefix + (side === 'a' ? res.linesA[idx] : res.linesB[idx]));
+        if (side === 'a' && idx === nA - 1 && !res.finalEolA) out.push('\\ No newline at end of file');
+        if (side === 'b' && idx === nB - 1 && !res.finalEolB) out.push('\\ No newline at end of file');
+      }
+      g.list.forEach(function (h) {
+        while (ai < h.a0) { line(' ', 'a', ai); ai++; bi++; }
+        for (var x = h.a0; x < h.a1; x++) line('-', 'a', x);
+        for (var y = h.b0; y < h.b1; y++) line('+', 'b', y);
+        ai = h.a1; bi = h.b1;
+      });
+      while (ai < a1) { line(' ', 'a', ai); ai++; bi++; }
+    });
+    return out.join('\n') + '\n';
+  }
+
+  var api = { compare: compare, diffLines: diffLines, diffChars: diffChars, unified: unified, splitLines: splitLines, tokens: tokens, hunksOf: hunksOf };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  else root.HenkanDiff = api;
+})(typeof self !== 'undefined' ? self : this);
+
+// ---- lib/json.js ----
+// ===========================
+// JSON の検証・整形（画面から切り離した純粋関数。DOM に触らない）
+// ブラウザ・Worker では self.HenkanJson、Node（テスト）では module.exports
+//
+// 自前の読み取り器を使う理由:
+// - 数と文字列を「書いてあったとおり」に残す。JSON.parse を通すと 12345678901234567890 は
+//   12345678901234567000 に、1.10 は 1.1 に、"あ" は "あ" になる（RFC 8259 6 章: 数の精度は実装しだい）
+// - 誤りの位置（行・列）と理由を、ブラウザによらず同じ日本語で出す
+// 文法は RFC 8259（空白は スペース・タブ・LF・CR の 4 つだけ）。先頭の BOM は読み飛ばして知らせる（8.1 章の MAY）
+// ===========================
+(function (root) {
+  'use strict';
+
+  var MAX_DEPTH = 2000;
+
+  function JsonError(message, index, hint) { this.message = message; this.index = index; this.hint = hint || ''; }
+
+  /** index（UTF-16 の位置）→ 行・列（列は字の数。1 から） */
+  function lineCol(text, index) {
+    var line = 1, start = 0;
+    for (var i = 0; i < index && i < text.length; i++) {
+      var c = text.charCodeAt(i);
+      if (c === 10 || (c === 13 && text.charCodeAt(i + 1) !== 10)) { line++; start = i + 1; }
+    }
+    var col = 1;
+    for (var k = start; k < index && k < text.length; k++) {
+      var cc = text.charCodeAt(k);
+      if (cc >= 0xD800 && cc <= 0xDBFF && k + 1 < index) k++;   // サロゲートペアは 1 字
+      col++;
+    }
+    return { line: line, col: col };
+  }
+
+  function show(ch) {
+    if (ch === undefined || ch === '') return '入力の終わり';
+    if (ch === ' ') return '半角スペース';
+    if (ch === '　') return '全角スペース';
+    if (ch === '\t') return 'タブ';
+    if (ch === '\n' || ch === '\r') return '改行';
+    return '「' + ch + '」';
+  }
+
+  /**
+   * 読み取る
+   * @returns {{ok: true, value: object, bom: boolean, dupKeys: Array} | {ok: false, error: {message, hint, index, line, col}}}
+   *   value は { t: 'obj'|'arr'|'str'|'num'|'lit', raw?: string, items?: [...], entries?: [[keyRaw, keyValue, node]] }
+   */
+  function parse(text) {
+    var s = String(text == null ? '' : text), i = 0, n = s.length, bom = false, dupKeys = [];
+    if (s.charCodeAt(0) === 0xFEFF) { bom = true; i = 1; }
+
+    function ws() {
+      while (i < n) {
+        var c = s.charCodeAt(i);
+        if (c === 32 || c === 9 || c === 10 || c === 13) i++;
+        else break;
+      }
+      // 空白ではないが空白に見えるもの・コメント
+      var ch = s.charAt(i);
+      if (ch === '　' || ch === ' ' || ch === '﻿') throw new JsonError(show(ch) + 'は JSON では空白として使えません。', i, '半角スペースに置き換えてください。');
+      if (ch === '/' && (s.charAt(i + 1) === '/' || s.charAt(i + 1) === '*')) throw new JsonError('コメント（' + s.substr(i, 2) + '）は JSON では書けません。', i, 'コメントを消してください（JSONC・JSON5 の書き方です）。');
+    }
+
+    function value(depth) {
+      if (depth > MAX_DEPTH) throw new JsonError('入れ子が深すぎます（' + MAX_DEPTH + ' 段まで）。', i);
+      ws();
+      var ch = s.charAt(i);
+      if (ch === '{') return object(depth);
+      if (ch === '[') return array(depth);
+      if (ch === '"') return { t: 'str', raw: string() };
+      if (ch === '-' || (ch >= '0' && ch <= '9')) return { t: 'num', raw: number() };
+      if (s.startsWith('true', i)) { i += 4; return { t: 'lit', raw: 'true' }; }
+      if (s.startsWith('false', i)) { i += 5; return { t: 'lit', raw: 'false' }; }
+      if (s.startsWith('null', i)) { i += 4; return { t: 'lit', raw: 'null' }; }
+      if (i >= n) throw new JsonError('値がありません（入力が途中で終わっています）。', i);
+      if (ch === "'") throw new JsonError('文字列が「\'」（シングルクォート）で囲まれています。', i, 'JSON の文字列は「"」（ダブルクォート）で囲みます。');
+      if (ch === '“' || ch === '”') throw new JsonError('全角の引用符' + show(ch) + 'があります。', i, '半角の「"」に置き換えてください。');
+      if (ch === '+' || ch === '.') throw new JsonError(show(ch) + 'で始まる数は JSON では書けません。', i, ch === '+' ? '「+」を消してください。' : '「0.5」のように 0 を付けてください。');
+      var word = /^[A-Za-z_$][\w$]*/.exec(s.slice(i, i + 40));
+      if (word) {
+        var w = word[0];
+        if (w === 'True' || w === 'False' || w === 'TRUE' || w === 'FALSE' || w === 'Null' || w === 'NULL' || w === 'None') throw new JsonError(show(w) + 'は JSON では使えません。', i, 'true・false・null は小文字で書きます。');
+        if (w === 'NaN' || w === 'Infinity' || w === 'undefined') throw new JsonError(show(w) + 'は JSON の値として書けません。', i, 'null か文字列にしてください。');
+        throw new JsonError('値として読めない語' + show(w) + 'があります。', i, '文字列なら「"」で囲んでください。');
+      }
+      if (ch === ',' ) throw new JsonError('値が来るところに「,」があります。', i, 'カンマが 2 つ続いているか、最初の値が抜けています。');
+      if (ch === ']' || ch === '}') throw new JsonError('値が来るところに' + show(ch) + 'があります。', i);
+      throw new JsonError('値が来るところに' + show(ch) + 'があります。', i);
+    }
+
+    function object(depth) {
+      var open = i, entries = [], seen = new Map();
+      i++;
+      ws();
+      if (s.charAt(i) === '}') { i++; return { t: 'obj', entries: entries }; }
+      for (;;) {
+        ws();
+        var ch = s.charAt(i);
+        if (ch !== '"') {
+          if (ch === '}' && entries.length) throw new JsonError('「}」の前に余分な「,」があります。', lastComma, 'JSON では最後の項目の後ろにカンマを書けません。');
+          if (ch === "'") throw new JsonError('名前（キー）が「\'」で囲まれています。', i, '「"」で囲んでください。');
+          if (/[A-Za-z_$]/.test(ch)) throw new JsonError('名前（キー）が「"」で囲まれていません。', i, '{"name": 1} のように名前も「"」で囲みます。');
+          if (i >= n) throw new JsonError('「{」が閉じていません。', open, lineCol(s, open).line + ' 行目の「{」に対応する「}」がありません。');
+          throw new JsonError('名前（キー）が来るところに' + show(ch) + 'があります。', i);
+        }
+        var kpos = i, kraw = string(), kval = decodeString(kraw);
+        if (seen.has(kval)) dupKeys.push({ key: kval, index: kpos, first: seen.get(kval) }); else seen.set(kval, kpos);
+        ws();
+        if (s.charAt(i) !== ':') {
+          if (s.charAt(i) === '：') throw new JsonError('全角の「：」があります。', i, '半角の「:」に置き換えてください。');
+          throw new JsonError('名前の後ろに「:」がありません（' + show(s.charAt(i)) + 'があります）。', i);
+        }
+        i++;
+        var v = value(depth + 1);
+        entries.push([kraw, kval, v]);
+        ws();
+        ch = s.charAt(i);
+        if (ch === ',') { var lastComma = i; i++; continue; }
+        if (ch === '}') { i++; return { t: 'obj', entries: entries }; }
+        if (i >= n) throw new JsonError('「{」が閉じていません。', open, lineCol(s, open).line + ' 行目の「{」に対応する「}」がありません。');
+        if (ch === '"') throw new JsonError('項目のあいだに「,」がありません。', i, '前の値のあとにカンマを足してください。');
+        if (ch === '、' || ch === '，') throw new JsonError('全角の' + show(ch) + 'があります。', i, '半角の「,」に置き換えてください。');
+        throw new JsonError('「,」か「}」が来るところに' + show(ch) + 'があります。', i);
+      }
+    }
+
+    function array(depth) {
+      var open = i, items = [], lastComma = -1;
+      i++;
+      ws();
+      if (s.charAt(i) === ']') { i++; return { t: 'arr', items: items }; }
+      for (;;) {
+        ws();
+        if (s.charAt(i) === ']' && items.length) throw new JsonError('「]」の前に余分な「,」があります。', lastComma, 'JSON では最後の要素の後ろにカンマを書けません。');
+        if (i >= n) throw new JsonError('「[」が閉じていません。', open, lineCol(s, open).line + ' 行目の「[」に対応する「]」がありません。');
+        items.push(value(depth + 1));
+        ws();
+        var ch = s.charAt(i);
+        if (ch === ',') { lastComma = i; i++; continue; }
+        if (ch === ']') { i++; return { t: 'arr', items: items }; }
+        if (i >= n) throw new JsonError('「[」が閉じていません。', open, lineCol(s, open).line + ' 行目の「[」に対応する「]」がありません。');
+        if (ch === '}') throw new JsonError('「]」が来るところに「}」があります。', i, lineCol(s, open).line + ' 行目の「[」を閉じるのは「]」です。');
+        if (ch === '、' || ch === '，') throw new JsonError('全角の' + show(ch) + 'があります。', i, '半角の「,」に置き換えてください。');
+        throw new JsonError('要素のあいだに「,」がありません（' + show(ch) + 'があります）。', i, '前の値のあとにカンマを足してください。');
+      }
+    }
+
+    // 文字列の生の形（引用符を含む）を返す
+    function string() {
+      var start = i;
+      i++;
+      for (;;) {
+        if (i >= n) throw new JsonError('文字列が閉じていません。', start, lineCol(s, start).line + ' 行目で始まる文字列に、閉じる「"」がありません。');
+        var c = s.charCodeAt(i);
+        if (c === 34) { i++; return s.slice(start, i); }
+        if (c === 92) {
+          var e = s.charAt(i + 1);
+          if ('"\\/bfnrt'.indexOf(e) >= 0 && e !== '') { i += 2; continue; }
+          if (e === 'u') {
+            if (!/^[0-9a-fA-F]{4}$/.test(s.substr(i + 2, 4))) throw new JsonError('「\\u」の後ろは 16 進の 4 桁です。', i);
+            i += 6; continue;
+          }
+          throw new JsonError('文字列の中の「\\' + e + '」は JSON のエスケープにありません。', i, '「\\」そのものを書くときは「\\\\」と 2 つ重ねます。');
+        }
+        if (c < 0x20) {
+          if (c === 10 || c === 13) throw new JsonError('文字列の中に改行があります。', i, '改行は「\\n」と書きます。文字列の閉じる「"」を忘れていないかも見てください。');
+          if (c === 9) throw new JsonError('文字列の中にタブがあります。', i, 'タブは「\\t」と書きます。');
+          throw new JsonError('文字列の中に制御文字（U+' + ('000' + c.toString(16).toUpperCase()).slice(-4) + '）があります。', i);
+        }
+        i++;
+      }
+    }
+
+    function number() {
+      var start = i;
+      if (s.charAt(i) === '-') i++;
+      if (s.charAt(i) === '0') {
+        i++;
+        if (/[0-9]/.test(s.charAt(i))) throw new JsonError('数の先頭に 0 を付けられません（「' + s.slice(start, i + 1) + '…」）。', start, '郵便番号や電話番号のように 0 で始まるものは、文字列（"0123"）にしてください。');
+      } else if (/[1-9]/.test(s.charAt(i))) {
+        while (/[0-9]/.test(s.charAt(i))) i++;
+      } else throw new JsonError('「-」の後ろに数字がありません。', i);
+      if (s.charAt(i) === '.') {
+        i++;
+        if (!/[0-9]/.test(s.charAt(i))) throw new JsonError('小数点の後ろに数字がありません。', i, '「1.」ではなく「1.0」か「1」と書きます。');
+        while (/[0-9]/.test(s.charAt(i))) i++;
+      }
+      if (s.charAt(i) === 'e' || s.charAt(i) === 'E') {
+        i++;
+        if (s.charAt(i) === '+' || s.charAt(i) === '-') i++;
+        if (!/[0-9]/.test(s.charAt(i))) throw new JsonError('指数（e）の後ろに数字がありません。', i);
+        while (/[0-9]/.test(s.charAt(i))) i++;
+      }
+      return s.slice(start, i);
+    }
+
+    try {
+      ws();
+      if (i >= n) throw new JsonError('JSON が空です。', i);
+      var v = value(0);
+      ws();
+      if (i < n) {
+        var ch = s.charAt(i);
+        if (ch === ',') throw new JsonError('JSON の終わりのあとに「,」があります。', i, '全体を [ ] で囲むと、いくつもの値を並べられます。');
+        if (ch === '}' || ch === ']') throw new JsonError('閉じかっこ' + show(ch) + 'が多すぎます。', i);
+        throw new JsonError('JSON の終わりのあとに、まだ' + show(ch) + 'が続いています。', i, '1 行に 1 つの JSON（JSON Lines）なら、行ごとに分けて貼ってください。');
+      }
+      return { ok: true, value: v, bom: bom, dupKeys: dupKeys.map(function (d) { var p = lineCol(s, d.index); return { key: d.key, line: p.line, col: p.col }; }) };
+    } catch (e) {
+      if (!(e instanceof JsonError)) throw e;
+      var p = lineCol(s, e.index);
+      return { ok: false, error: { message: e.message, hint: e.hint, index: e.index, line: p.line, col: p.col } };
+    }
+  }
+
+  /** 文字列の生の形 → 値（JSON.parse は 1 つの文字列なら安全に使える） */
+  function decodeString(raw) { return JSON.parse(raw); }
+
+  /**
+   * 整形する。indent は 0（1 行に詰める）・2・4・'\t'。sortKeys なら名前の順（UTF-16 の符号の順）に並べる。
+   * 数と文字列は書いてあったとおりに出す
+   */
+  function format(node, o) {
+    o = o || {};
+    var ind = o.indent === '\t' ? '\t' : ' '.repeat(Number(o.indent) || 0), pretty = ind !== '', out = [];
+    function walk(v, pad) {
+      if (v.t === 'obj') {
+        if (!v.entries.length) { out.push('{}'); return; }
+        var es = v.entries;
+        if (o.sortKeys) es = es.slice().sort(function (x, y) { return x[1] < y[1] ? -1 : x[1] > y[1] ? 1 : 0; });
+        out.push('{');
+        es.forEach(function (e, k) {
+          if (k) out.push(',');
+          if (pretty) out.push('\n', pad + ind);
+          out.push(e[0], pretty ? ': ' : ':');
+          walk(e[2], pad + ind);
+        });
+        if (pretty) out.push('\n', pad);
+        out.push('}');
+      } else if (v.t === 'arr') {
+        if (!v.items.length) { out.push('[]'); return; }
+        out.push('[');
+        v.items.forEach(function (it, k) {
+          if (k) out.push(',');
+          if (pretty) out.push('\n', pad + ind);
+          walk(it, pad + ind);
+        });
+        if (pretty) out.push('\n', pad);
+        out.push(']');
+      } else out.push(v.raw);
+    }
+    walk(node, '');
+    return out.join('');
+  }
+
+  /** 数の中で、ふつうの JavaScript（倍精度）に読むと値が変わるもの */
+  function lossyNumbers(node, limit) {
+    var found = [];
+    (function walk(v) {
+      if (found.length >= (limit || 5)) return;
+      if (v.t === 'obj') v.entries.forEach(function (e) { walk(e[2]); });
+      else if (v.t === 'arr') v.items.forEach(walk);
+      else if (v.t === 'num' && /^-?\d+$/.test(v.raw) && !Number.isSafeInteger(Number(v.raw))) found.push(v.raw);
+    })(node);
+    return found;
+  }
+
+  /**
+   * 表（CSV 用の行）にする。一番外が配列で、要素がオブジェクト（名前 → 値）か配列のとき
+   * - オブジェクトの入れ子は「親.子」の列に広げる。入れ子の配列は JSON の文字列のまま 1 つのセルに
+   * - 列の順は、最初に出てきた順
+   * @returns {{ok: true, rows: string[][]} | {ok: false, error: string}}
+   */
+  function toRows(node) {
+    if (node.t !== 'arr') return { ok: false, error: '一番外が配列（[ … ]）のときだけ表にできます。' };
+    if (!node.items.length) return { ok: false, error: '配列が空です。' };
+    function cell(v) {
+      if (v.t === 'str') return decodeString(v.raw);
+      if (v.t === 'num' || v.t === 'lit') return v.raw === 'null' ? '' : v.raw;
+      return format(v, { indent: 0 });
+    }
+    if (node.items.every(function (x) { return x.t === 'arr'; })) {
+      return { ok: true, header: false, rows: node.items.map(function (r) { return r.items.map(cell); }) };
+    }
+    if (!node.items.every(function (x) { return x.t === 'obj'; })) return { ok: false, error: '配列の要素がオブジェクト（{ … }）か配列（[ … ]）にそろっているときだけ表にできます。' };
+    var cols = [], index = new Map();
+    var flat = node.items.map(function (obj) {
+      var row = new Map();
+      (function walk(o, prefix) {
+        o.entries.forEach(function (e) {
+          var name = prefix + e[1];
+          if (e[2].t === 'obj' && e[2].entries.length) { walk(e[2], name + '.'); return; }
+          if (!index.has(name)) { index.set(name, cols.length); cols.push(name); }
+          row.set(name, cell(e[2]));
+        });
+      })(obj, '');
+      return row;
+    });
+    return { ok: true, header: true, rows: [cols].concat(flat.map(function (r) { return cols.map(function (c) { return r.has(c) ? r.get(c) : ''; }); })) };
+  }
+
+  /** 値の数と深さ（結果の 1 行に出す） */
+  function stats(node) {
+    var count = 0, depth = 0;
+    (function walk(v, d) {
+      count++; if (d > depth) depth = d;
+      if (v.t === 'obj') v.entries.forEach(function (e) { walk(e[2], d + 1); });
+      else if (v.t === 'arr') v.items.forEach(function (x) { walk(x, d + 1); });
+    })(node, 0);
+    return { count: count, depth: depth, kind: node.t };
+  }
+
+  var api = { parse: parse, format: format, toRows: toRows, lossyNumbers: lossyNumbers, stats: stats, lineCol: lineCol };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  else root.HenkanJson = api;
+})(typeof self !== 'undefined' ? self : this);
+
+// ---- lib/csv.js ----
+// ===========================
+// CSV の読み取り・書き出し（画面から切り離した純粋関数。DOM に触らない）
+// ブラウザ・Worker では self.HenkanCsv、Node（テスト）では module.exports
+//
+// 形式は RFC 4180（2005 年、Informational）の 2 章に合わせる:
+//   - 区切りを含む・「"」を含む・改行を含むフィールドは「"」で囲む（6）
+//   - 囲んだフィールドの中の「"」は「""」と 2 つ重ねる（7）
+//   - 最後のレコードの改行はあってもなくてもよい（2）。空白はフィールドの一部（4）
+// 読むときは RFC より広く受け入れる: 改行は CRLF・LF・CR のどれでも、区切りはカンマ・タブ・セミコロン・縦棒、
+//   囲まないフィールドの途中の「"」はそのまま文字として読み、注意を返す
+// ===========================
+(function (root) {
+  'use strict';
+
+  var DELIMS = [',', '\t', ';', '|'];
+  var NAMES = { ',': 'カンマ', '\t': 'タブ', ';': 'セミコロン', '|': '縦棒（|）' };
+
+  /**
+   * 読み取る
+   * @returns {{rows: string[][], warnings: Array<{line, message}>, error: null | {line, message}}}
+   *   line は元のテキストの行番号（1 から）
+   */
+  function parse(text, o) {
+    o = o || {};
+    var s = String(text == null ? '' : text), d = o.delimiter || ',', limit = o.maxRows || Infinity;
+    if (s.charCodeAt(0) === 0xFEFF) s = s.slice(1);
+    var rows = [], row = [], field = '', i = 0, n = s.length, line = 1, warnings = [], error = null;
+    var dc = d.charCodeAt(0);
+    if (n === 0) return { rows: rows, warnings: warnings, error: null };
+    while (i < n) {
+      var c = s.charCodeAt(i);
+      if (c === 34 && field === '') {
+        // 囲んだフィールド
+        var start = line, j = i + 1, buf = [];
+        for (;;) {
+          var q = s.indexOf('"', j);
+          if (q < 0) {
+            error = { line: start, message: start + ' 行目で始まる「"」が閉じていません。' };
+            buf.push(s.slice(j)); line += countNl(s, j, n); i = n; break;
+          }
+          buf.push(s.slice(j, q)); line += countNl(s, j, q);
+          if (s.charCodeAt(q + 1) === 34) { buf.push('"'); j = q + 2; continue; }
+          i = q + 1; break;
+        }
+        field = buf.join('');
+        if (error) { row.push(field); rows.push(row); return { rows: rows, warnings: warnings, error: error }; }
+        // 閉じた「"」のすぐ後ろは区切りか改行か終わり
+        var nc = s.charCodeAt(i);
+        if (i < n && nc !== dc && nc !== 10 && nc !== 13) {
+          if (warnings.length < 20) warnings.push({ line: line, message: line + ' 行目: 閉じた「"」の後ろに文字があります（そのまま続けて読みました）。' });
+          var k = i;
+          while (k < n && s.charCodeAt(k) !== dc && s.charCodeAt(k) !== 10 && s.charCodeAt(k) !== 13) k++;
+          field += s.slice(i, k); i = k;
+        }
+        field = { v: field };   // 空文字でも「囲んだ」ことを覚えておく（下で文字列に戻す）
+        continue;
+      }
+      if (c === dc) { row.push(val(field)); field = ''; i++; continue; }
+      if (c === 10 || c === 13) {
+        row.push(val(field)); field = ''; rows.push(row); row = [];
+        if (rows.length >= limit) return { rows: rows, warnings: warnings, error: null, truncated: true };
+        i += (c === 13 && s.charCodeAt(i + 1) === 10) ? 2 : 1; line++;
+        continue;
+      }
+      // 囲まないフィールド: 次の区切り・改行まで
+      var e = i;
+      while (e < n) { var cc = s.charCodeAt(e); if (cc === dc || cc === 10 || cc === 13) break; e++; }
+      var chunk = s.slice(i, e);
+      if (typeof field === 'object') field = field.v;
+      if (chunk.indexOf('"') >= 0 && warnings.length < 20) warnings.push({ line: line, message: line + ' 行目: 「"」で囲まれていないフィールドの中に「"」があります（文字として読みました）。' });
+      field += chunk; i = e;
+    }
+    // 最後のレコード（終わりに改行が無いとき）
+    if (field !== '' || row.length) { row.push(val(field)); rows.push(row); }
+    return { rows: rows, warnings: warnings, error: null };
+  }
+  function val(f) { return typeof f === 'object' ? f.v : f; }
+  function countNl(s, a, b) {
+    var k = 0;
+    for (var x = a; x < b; x++) { var c = s.charCodeAt(x); if (c === 10 || (c === 13 && s.charCodeAt(x + 1) !== 10)) k++; }
+    return k;
+  }
+
+  /**
+   * 区切り文字を推定する。先頭の 100 レコードを各候補で読み、列の数がそろっていて 2 列以上のものを選ぶ
+   * @returns {{delimiter: string, name: string, columns: number, sure: boolean}}
+   */
+  function detect(text) {
+    var sample = String(text || '').slice(0, 200000), best = null;
+    DELIMS.forEach(function (d, rank) {
+      var r = parse(sample, { delimiter: d, maxRows: 100 });
+      var rows = r.rows.filter(function (x) { return !(x.length === 1 && x[0] === ''); });
+      if (rows.length > 1 && sample.length >= 200000) rows.pop();   // 切った末尾の半端な行は数えない
+      if (!rows.length) return;
+      var counts = new Map();
+      rows.forEach(function (x) { counts.set(x.length, (counts.get(x.length) || 0) + 1); });
+      var mode = 0, freq = 0;
+      counts.forEach(function (f, k) { if (f > freq || (f === freq && k > mode)) { mode = k; freq = f; } });
+      var score = mode > 1 ? (freq / rows.length) * 1000 + Math.min(mode, 50) - rank * 0.1 : 0;
+      if (!best || score > best.score) best = { delimiter: d, score: score, columns: mode, consistent: freq === rows.length };
+    });
+    if (!best || best.score === 0) return { delimiter: ',', name: NAMES[','], columns: 1, sure: false };
+    return { delimiter: best.delimiter, name: NAMES[best.delimiter], columns: best.columns, sure: best.consistent };
+  }
+
+  /**
+   * 書き出す
+   * @param {string[][]} rows
+   * @param {{delimiter?: string, quote?: 'auto'|'all', eol?: '\r\n'|'\n', bom?: boolean}} o
+   *   quote 'auto' は RFC 4180 の 6 のとおり、区切り・「"」・改行を含むフィールドだけ囲む
+   *   （先頭・末尾に空白があるフィールドも、読み手が削らないよう囲む）
+   */
+  function stringify(rows, o) {
+    o = o || {};
+    var d = o.delimiter || ',', eol = o.eol || '\r\n', all = o.quote === 'all';
+    var out = rows.map(function (r) {
+      return r.map(function (f) {
+        var v = f == null ? '' : String(f);
+        if (all || v.indexOf(d) >= 0 || /["\r\n]/.test(v) || /^\s|\s$/.test(v)) return '"' + v.replace(/"/g, '""') + '"';
+        return v;
+      }).join(d);
+    }).join(eol);
+    if (rows.length) out += eol;
+    return (o.bom ? '﻿' : '') + out;
+  }
+
+  /**
+   * JSON にする。header なら 1 行目を名前にしたオブジェクトの配列、そうでなければ配列の配列。
+   * numbers なら「0 で始まらない整数・小数」だけを数にする（郵便番号・電話番号の先頭の 0 を落とさない）
+   */
+  function toJson(rows, o) {
+    o = o || {};
+    function conv(v) {
+      if (o.numbers && /^-?(0|[1-9]\d*)(\.\d+)?$/.test(v)) {
+        var num = Number(v);
+        if (Number.isSafeInteger(num) || (/\./.test(v) && String(num) === v.replace(/^(-?)0*(\d)/, '$1$2'))) return num;
+      }
+      return v;
+    }
+    var indent = o.indent == null ? 2 : o.indent;
+    if (!o.header) return JSON.stringify(rows.map(function (r) { return r.map(conv); }), null, indent);
+    var names = uniqueNames(rows[0] || []);
+    var list = rows.slice(1).map(function (r) {
+      var obj = {};
+      names.forEach(function (name, k) { obj[name] = conv(r[k] == null ? '' : r[k]); });
+      for (var x = names.length; x < r.length; x++) obj['列' + (x + 1)] = conv(r[x]);
+      return obj;
+    });
+    return JSON.stringify(list, null, indent);
+  }
+
+  /** 見出しの名前をそろえる（空は「列N」、重なりは「名前_2」） */
+  function uniqueNames(head) {
+    var seen = new Map();
+    return head.map(function (h, k) {
+      var base = String(h).trim() === '' ? '列' + (k + 1) : String(h), name = base, c = 1;
+      while (seen.has(name)) { c++; name = base + '_' + c; }
+      seen.set(name, true);
+      return name;
+    });
+  }
+
+  /**
+   * ファイルのバイト列を文字にする。UTF-8（BOM あり・なし）として読めなければ Shift_JIS（Windows-31J）として読む
+   * @param {Uint8Array} bytes
+   * @returns {{text: string, encoding: string}}
+   */
+  function decode(bytes) {
+    var bomless = bytes;
+    if (bytes[0] === 0xEF && bytes[1] === 0xBB && bytes[2] === 0xBF) return { text: new TextDecoder('utf-8').decode(bytes.subarray(3)), encoding: 'UTF-8（BOM あり）' };
+    if (bytes[0] === 0xFF && bytes[1] === 0xFE) return { text: new TextDecoder('utf-16le').decode(bytes.subarray(2)), encoding: 'UTF-16LE' };
+    if (bytes[0] === 0xFE && bytes[1] === 0xFF) return { text: new TextDecoder('utf-16be').decode(bytes.subarray(2)), encoding: 'UTF-16BE' };
+    try { return { text: new TextDecoder('utf-8', { fatal: true }).decode(bomless), encoding: 'UTF-8' }; } catch (e) { /* 次へ */ }
+    try { return { text: new TextDecoder('shift_jis').decode(bytes), encoding: 'Shift_JIS' }; } catch (e) { /* 次へ */ }
+    return { text: new TextDecoder('utf-8').decode(bytes), encoding: 'UTF-8（読めない字あり）' };
+  }
+
+  var api = { parse: parse, detect: detect, stringify: stringify, toJson: toJson, uniqueNames: uniqueNames, decode: decode, NAMES: NAMES };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  else root.HenkanCsv = api;
+})(typeof self !== 'undefined' ? self : this);
+
+// ---- lib/ops.js ----
+// ===========================
+// 画面が頼む処理の一覧（Worker の中でも、Worker が使えないときは画面側でも同じものを呼ぶ）
+// 受け取る args は配列。結果は構造化複製できる値だけ（関数・DOM を入れない）
+// ===========================
+/* global HenkanDiff, HenkanJson, HenkanCsv, HenkanKana */
+(function (root) {
+  'use strict';
+  var OPS = {
+    diffLines: function (a) { return HenkanDiff.diffLines(a[0], a[1], a[2]); },
+    diffChars: function (a) { return HenkanDiff.diffChars(a[0], a[1], a[2]); },
+    unified: function (a) { return HenkanDiff.unified(HenkanDiff.diffLines(a[0], a[1], Object.assign({}, a[2], { inline: false })), a[3]); },
+    json: function (a) {
+      // 読む → 整形（と表にする）までを 1 回で。大きな木を画面側に送らない
+      var r = HenkanJson.parse(a[0]);
+      if (!r.ok) return r;
+      var o = a[1] || {};
+      var out = { ok: true, bom: r.bom, dupKeys: r.dupKeys.slice(0, 20), dupCount: r.dupKeys.length, stats: HenkanJson.stats(r.value), lossy: HenkanJson.lossyNumbers(r.value, 5) };
+      if (o.mode === 'csv') {
+        var t = HenkanJson.toRows(r.value);
+        if (!t.ok) { out.tableError = t.error; out.text = ''; }
+        else { out.rows = t.rows.length - (t.header ? 1 : 0); out.cols = t.rows[0] ? t.rows[0].length : 0; out.header = t.header; out.text = HenkanCsv.stringify(t.rows, o.csv || {}); out.preview = t.rows.slice(0, 51); }
+      } else out.text = HenkanJson.format(r.value, { indent: o.mode === 'min' ? 0 : o.indent, sortKeys: o.sortKeys });
+      return out;
+    },
+    csv: function (a) {
+      var text = a[0], o = a[1] || {};
+      var det = HenkanCsv.detect(text);
+      var d = o.delimiter && o.delimiter !== 'auto' ? o.delimiter : det.delimiter;
+      var r = HenkanCsv.parse(text, { delimiter: d });
+      var rows = r.rows, widths = {};
+      rows.forEach(function (x) { widths[x.length] = (widths[x.length] || 0) + 1; });
+      var out = { detected: det, delimiter: d, rowCount: rows.length, widths: widths, warnings: r.warnings, error: r.error, preview: rows.slice(0, 101) };
+      if (o.mode === 'json') out.text = HenkanCsv.toJson(rows, { header: o.header, numbers: o.numbers });
+      else out.text = HenkanCsv.stringify(rows, { delimiter: o.outDelimiter === 'same' ? d : (o.outDelimiter || ','), quote: o.quote, eol: o.eol, bom: false });
+      return out;
+    },
+    kana: function (a) { return HenkanKana.convert(a[0], a[1]); },
+  };
+
+  root.HenkanOps = OPS;
+})(typeof self !== 'undefined' ? self : this);
+
+// ---- reset-storage.js ----
+// ===========================
+// 保存した内容をすべて消す（初期状態に戻す）— yorozu-craft の全ツール共通（yorozu-plans ROADMAP K123）
+// <button type="button" data-reset-storage="<リポジトリ名>_"> を押すと、確認を 1 回出してから、
+// その接頭辞で始まる localStorage のキー（と data-reset-legacy に並べた接頭辞なしの旧キー）だけを消し、
+// ページを読み直して初期状態に戻す。全ツールが同じオリジン（yorozu-craft.com）なので、ほかのツールのキーは消さない。
+// 接頭辞と旧キーは空白かカンマで区切って複数書ける。確認の文は data-reset-confirm で差し替えられる。
+// data-reset-hold を付けると、押すだけでは動かず 1 秒の長押しで確認を出す（こども向けの画面）。
+// ===========================
+(function (root) {
+  'use strict';
+
+  function splitList(s) {
+    return String(s || '').split(/[\s,]+/).filter(function (x) { return x !== ''; });
+  }
+
+  /** 消すキーを選ぶ（DOM や localStorage に触らない。tests から確かめる） */
+  function keysToRemove(keys, prefixes, legacy) {
+    prefixes = (prefixes || []).filter(function (p) { return p !== ''; });   // 空の接頭辞で全部消さない
+    legacy = legacy || [];
+    return keys.filter(function (k) {
+      if (legacy.indexOf(k) !== -1) return true;
+      for (var i = 0; i < prefixes.length; i++) if (k.indexOf(prefixes[i]) === 0) return true;
+      return false;
+    });
+  }
+
+  /** storage（localStorage と同じ形）から、選んだキーを消す。消したキーを返す */
+  function clear(storage, prefixes, legacy) {
+    var all = [];
+    for (var i = 0; i < storage.length; i++) {
+      var k = storage.key(i);
+      if (k !== null) all.push(k);
+    }
+    var gone = keysToRemove(all, prefixes, legacy);
+    gone.forEach(function (k) { try { storage.removeItem(k); } catch (e) { /* 消せなくても続ける */ } });
+    return gone;
+  }
+
+  var api = { keysToRemove: keysToRemove, clear: clear, splitList: splitList };
+  if (typeof module !== 'undefined' && module.exports) { module.exports = api; return; }
+  root.ResetStorage = api;
+
+  var MSG = {
+    ja: 'このツールがこの端末に保存した内容（入力・履歴・設定）をすべて消して、初期状態に戻します。消した内容は元に戻せません。よろしいですか？',
+    en: 'Delete everything this tool has saved in this browser (inputs, history, settings) and reset it to the initial state? This cannot be undone.',
+  };
+
+  function wire(btn) {
+    function run() {
+      var lang = /^en\b/i.test(document.documentElement.lang || '') ? 'en' : 'ja';
+      if (!root.confirm(btn.getAttribute('data-reset-confirm') || MSG[lang])) return;
+      var prefixes = splitList(btn.getAttribute('data-reset-storage'));
+      var legacy = splitList(btn.getAttribute('data-reset-legacy'));
+      try {
+        clear(root.localStorage, prefixes, legacy);
+        // 読み直すまでの間に（pagehide などで）保存し直されないよう、消したキーへの書き込みを止める
+        var setItem = Storage.prototype.setItem;
+        Storage.prototype.setItem = function (k, v) {
+          if (keysToRemove([String(k)], prefixes, legacy).length) return;
+          return setItem.call(this, k, v);
+        };
+      } catch (e) { /* localStorage が使えない環境では、消すものも無い */ }
+      // # 以降（共有リンクの中身など）も外して、最初の画面を開き直す
+      root.location.replace(root.location.pathname + root.location.search);
+    }
+    if (!btn.hasAttribute('data-reset-hold')) { btn.addEventListener('click', run); return; }
+    // data-reset-hold: 1 秒の長押しで確認を出す（こどもが遊ぶ画面で、誤って押さないように）
+    var timer = null;
+    function up() { if (timer) { clearTimeout(timer); timer = null; } }
+    btn.addEventListener('pointerdown', function () { up(); timer = setTimeout(function () { timer = null; run(); }, 1000); });
+    ['pointerup', 'pointerleave', 'pointercancel'].forEach(function (ev) { btn.addEventListener(ev, up); });
+    btn.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+  }
+
+  function init() {
+    Array.prototype.forEach.call(document.querySelectorAll('[data-reset-storage]'), wire);
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
+})(typeof window !== 'undefined' ? window : this);
+
+// ---- app/common.js ----
+// ===========================
+// テキスト変換（henkan）— 4 つの道具で共通の部品
+// 保存（localStorage、キーは henkan_ で始める）・Worker での実行・ファイルの読み書き・コピー
+// ページが分かれた版と 1 ファイル版（henkan.html）の両方で同じものを使う
+// ===========================
+(function (root) {
+  'use strict';
+
+  // --- ブラウザへの保存（README「ツールを追加するとき」12）。保存するのは設定だけで、入力した文章は保存しない ---
+  var KEY = 'henkan_settings';
+  function loadAll() {
+    try { var v = JSON.parse(localStorage.getItem(KEY) || '{}'); return v && typeof v === 'object' && !Array.isArray(v) ? v : {}; } catch (e) { return {}; }
+  }
+  function saveAll(all) { try { localStorage.setItem(KEY, JSON.stringify(all)); } catch (e) { /* 保存できなくても続ける */ } }
+  function settings(tool, defaults) {
+    var all = loadAll(), cur = Object.assign({}, defaults, all[tool] || {});
+    // 既定に無い項目・型の違う項目は捨てる（保存された値や読み込んだファイルをそのまま信じない）
+    Object.keys(cur).forEach(function (k) { if (!(k in defaults) || typeof cur[k] !== typeof defaults[k]) cur[k] = defaults[k]; });
+    return {
+      get: function () { return cur; },
+      set: function (patch) { Object.assign(cur, patch); var a = loadAll(); a[tool] = cur; saveAll(a); },
+    };
+  }
+
+  // --- 重い処理は Worker で。前の処理が終わる前に次を頼んだら、前のものは止める ---
+  var workerUrl = null;
+  function makeWorker() {
+    var src = document.getElementById('henkan-worker-src');
+    try {
+      if (src) {
+        if (!workerUrl) workerUrl = URL.createObjectURL(new Blob([src.textContent], { type: 'text/javascript' }));
+        return new Worker(workerUrl);
+      }
+      return new Worker((document.body.getAttribute('data-root') || './') + 'lib/worker.js');
+    } catch (e) { return null; }
+  }
+  function runner() {
+    var w = null, busy = null, seq = 0, noWorker = false;
+    function fallback(op, args) {
+      // Worker が使えない環境（古いブラウザ・一部の file://）では画面側で同じ処理をする
+      return new Promise(function (res, rej) {
+        setTimeout(function () { try { res(root.HenkanOps[op](args)); } catch (e) { rej(e); } }, 0);
+      });
+    }
+    return {
+      run: function (op, args) {
+        if (noWorker) return fallback(op, args);
+        if (busy) {
+          // 前の処理は止める。止めた Worker からあとで届くエラー・結果は受け取らない
+          busy.reject({ cancelled: true }); busy = null;
+          if (w) { w.onmessage = w.onerror = null; w.terminate(); w = null; }
+        }
+        if (!w) w = makeWorker();
+        if (!w) { noWorker = true; return fallback(op, args); }
+        var id = ++seq, me = w;
+        return new Promise(function (resolve, reject) {
+          busy = { id: id, reject: reject };
+          me.onmessage = function (e) {
+            if (me !== w || !busy || e.data.id !== busy.id) return;
+            busy = null;
+            if (e.data.ok) resolve(e.data.result); else reject(new Error(e.data.error));
+          };
+          me.onerror = function (ev) {
+            // 起動できなかった（file:// で Worker が禁止など）ときは、以後は画面側で
+            if (ev && ev.preventDefault) ev.preventDefault();
+            if (me !== w) return;
+            me.onmessage = me.onerror = null; me.terminate();
+            w = null; noWorker = true; busy = null;
+            fallback(op, args).then(resolve, reject);
+          };
+          me.postMessage({ id: id, op: op, args: args });
+        });
+      },
+    };
+  }
+
+  function debounce(fn, ms) {
+    var t = null;
+    return function () { var a = arguments, self = this; clearTimeout(t); t = setTimeout(function () { fn.apply(self, a); }, typeof ms === 'function' ? ms() : ms); };
+  }
+
+  // 入力の大きさで待ち時間を変える（大きい入力を打つたびに計算し直さない）
+  function waitFor(len) { return len > 2e6 ? 900 : len > 3e5 ? 500 : 250; }
+
+  function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+  function num(n) { return Number(n).toLocaleString('ja-JP'); }
+  function size(len) { return len >= 1e5 ? Math.round(len / 1e4) + ' 万字' : len >= 1e4 ? (len / 1e4).toFixed(1) + ' 万字' : num(len) + ' 字'; }
+
+  /** ファイルを文字にする（UTF-8 か Shift_JIS。CSV・テキスト・JSON のどれも） */
+  function readFile(file) {
+    return file.arrayBuffer().then(function (buf) { return root.HenkanCsv.decode(new Uint8Array(buf)); });
+  }
+
+  // textarea の value は改行を LF にそろえてしまう。開いたファイルの中身（CRLF など）は別に持ち、手で直したら捨てる
+  var raws = new WeakMap();
+  // 大きなファイル（30 万字より多い）は入力欄に表示しない。ブラウザが入力欄に数 MB を並べるだけで数秒止まるため（2.3MB で約 3.5 秒、2026-09-25 に計測）
+  var BIG = 300000;
+  function setRaw(textarea, text, name) {
+    if (textarea._ph == null) textarea._ph = textarea.placeholder;
+    var big = text.length > BIG;
+    textarea.value = big ? '' : text;
+    textarea.placeholder = big ? '「' + (name || 'ファイル') + '」（' + size(text.length) + '）を読み込みました。大きいので表示を省いています。入れ直すときは、ここに貼り付けるかファイルを開いてください。' : textarea._ph;
+    if (big || /\r/.test(text)) raws.set(textarea, text); else raws.delete(textarea);
+    if (!textarea._rawWired) {
+      textarea._rawWired = true;
+      textarea.addEventListener('input', function () { raws.delete(textarea); textarea.placeholder = textarea._ph; });
+    }
+  }
+  /** 入力欄の中身（開いたファイルならその改行のまま） */
+  function val(textarea) { return raws.has(textarea) ? raws.get(textarea) : textarea.value; }
+
+  /** 結果の欄に出す。大きい結果は表示を省き、コピー・保存で取り出してもらう */
+  function showOut(textarea, text) {
+    if (textarea._ph == null) textarea._ph = textarea.placeholder;
+    var big = text.length > BIG;
+    textarea.value = big ? '' : text;
+    textarea.placeholder = big ? '結果は ' + size(text.length) + 'です。大きいので表示を省いています。「コピー」か「ファイルに保存」で取り出してください。' : textarea._ph;
+  }
+
+  /** 入力欄にファイルを開くボタンとドロップをつける */
+  function attachFile(textarea, button, onText) {
+    var input = document.createElement('input');
+    input.type = 'file'; input.hidden = true;
+    input.accept = textarea.getAttribute('data-accept') || '';
+    button.after(input);
+    function take(file) {
+      if (!file) return;
+      readFile(file).then(function (r) { setRaw(textarea, r.text, file.name); onText(file.name, r.encoding); }, function () { onText(file.name, null); });
+    }
+    button.addEventListener('click', function () { input.click(); });
+    input.addEventListener('change', function () { take(input.files && input.files[0]); input.value = ''; });
+    textarea.addEventListener('dragover', function (e) { e.preventDefault(); textarea.classList.add('drop'); });
+    textarea.addEventListener('dragleave', function () { textarea.classList.remove('drop'); });
+    textarea.addEventListener('drop', function (e) {
+      e.preventDefault(); textarea.classList.remove('drop');
+      take(e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]);
+    });
+  }
+
+  /** 文字をファイルとして保存する（この端末の中で作るだけ） */
+  function download(text, name, type, bom) {
+    var blob = new Blob([bom ? '﻿' : '', text], { type: (type || 'text/plain') + ';charset=utf-8' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
+  }
+
+  function copy(text, msgEl) {
+    function done(ok) { if (msgEl) { msgEl.textContent = ok ? 'コピーしました。' : 'コピーできませんでした。結果の欄を選んでコピーしてください。'; setTimeout(function () { msgEl.textContent = ''; }, 3000); } }
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(function () { done(true); }, function () { done(false); });
+    else done(false);
+  }
+
+  // --- 設定のファイルへの書き出し・読み込み（README「ツールを追加するとき」20。決定 D31） ---
+  var TOOL = 'henkan', BACKUP_VERSION = 1;
+  function backupFileName(d) {
+    d = d || new Date();
+    return TOOL + '-backup-' + d.getFullYear() + String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0') + '.json';
+  }
+  function wireBackup(box, onLoaded) {
+    if (!box) return;
+    var msg = box.querySelector('.backup-msg'), file = box.querySelector('input[type=file]');
+    box.querySelector('.backup-export').addEventListener('click', function () {
+      download(JSON.stringify({ tool: TOOL, version: BACKUP_VERSION, exportedAt: new Date().toISOString(), data: { settings: loadAll() } }, null, 2), backupFileName(), 'application/json');
+      msg.textContent = 'ファイルに書き出しました。';
+    });
+    box.querySelector('.backup-import').addEventListener('click', function () { file.click(); });
+    file.addEventListener('change', function () {
+      var f = file.files && file.files[0]; file.value = '';
+      if (!f) return;
+      if (f.size > 1024 * 1024) { msg.textContent = 'ファイルが大きすぎます。このツールで書き出したファイルを選んでください。'; return; }
+      f.text().then(function (text) {
+        var o = null;
+        try { o = JSON.parse(text); } catch (e) { o = null; }
+        if (!o || typeof o !== 'object' || o.tool !== TOOL) { msg.textContent = o && typeof o.tool === 'string' ? 'ほかのツール（' + String(o.tool).slice(0, 40) + '）のファイルです。' : 'ファイルを読み取れませんでした。このツールの「ファイルに書き出す」で作った .json ファイルを選んでください。'; return; }
+        if (o.version !== BACKUP_VERSION) { msg.textContent = 'ファイルの形式が正しくないため読み込めません。'; return; }
+        var s = o.data && o.data.settings;
+        if (!s || typeof s !== 'object' || Array.isArray(s)) { msg.textContent = 'ファイルの中身が足りないため読み込めません。'; return; }
+        if (!root.confirm('ファイルの設定で、今の設定を置き換えます。よろしいですか？')) return;
+        var clean = {};
+        ['diff', 'json', 'csv', 'kana'].forEach(function (k) { if (s[k] && typeof s[k] === 'object' && !Array.isArray(s[k])) clean[k] = s[k]; });
+        saveAll(clean);   // 各道具の settings() が読み込むときに型をそろえる
+        msg.textContent = 'ファイルから読み込みました。画面を読み直します。';
+        if (onLoaded) onLoaded(); else setTimeout(function () { location.reload(); }, 600);
+      }, function () { msg.textContent = 'ファイルを読み取れませんでした。'; });
+    });
+  }
+
+  root.Henkan = {
+    settings: settings, runner: runner, debounce: debounce, waitFor: waitFor, esc: esc, num: num, size: size,
+    attachFile: attachFile, val: val, showOut: showOut, setRaw: setRaw, download: download, copy: copy, wireBackup: wireBackup, backupFileName: backupFileName,
+  };
+})(typeof window !== 'undefined' ? window : this);
+
+// ---- app/diff.js ----
+// ===========================
+// テキスト差分の画面（計算は lib/diff.js を Worker で）
+// ===========================
+(function () {
+  'use strict';
+  var form = document.getElementById('d-form');
+  if (!form) return;
+  var H = window.Henkan, $ = function (id) { return document.getElementById(id); };
+  var el = { a: $('d-a'), b: $('d-b'), big: $('d-big'), sub: $('d-sub'), out: $('d-out'), msg: $('d-msg'), viewRow: $('d-view-row'), actions: $('d-actions'), all: $('d-all') };
+  var S = H.settings('diff', { unit: 'line', space: false, caseless: false, width: false, view: '', all: false });
+  var run = H.runner(), last = null, shownRows = 0, ROWS = 2000;
+
+  function opts() { var s = S.get(); return { space: s.space, caseless: s.caseless, width: s.width }; }
+  function view() { var v = S.get().view; return v || (window.innerWidth >= 760 ? 'split' : 'unified'); }
+
+  function applySettings() {
+    var s = S.get();
+    form.querySelectorAll('input[name=d-unit]').forEach(function (r) { r.checked = r.value === s.unit; });
+    $('d-space').checked = s.space; $('d-case').checked = s.caseless; $('d-width').checked = s.width;
+    form.querySelectorAll('input[name=d-view]').forEach(function (r) { r.checked = r.value === view(); });
+    el.all.checked = s.all;
+    var ign = [s.space && '空白', s.caseless && '大小', s.width && '全角半角'].filter(Boolean);
+    var st = (s.unit === 'char' ? '文字単位' : '行単位') + (ign.length ? '・' + ign.join('・') + 'を無視' : '');
+    var state = $('d-opt').querySelector('.opt-state'); if (state) state.textContent = st;
+  }
+
+  function update() {
+    var a = H.val(el.a), b = H.val(el.b);
+    if (a === '' && b === '') { last = null; render(); return; }
+    var s = S.get();
+    if (s.unit === 'char' && (a.length > 200000 || b.length > 200000)) {
+      last = { error: '文字単位で比べられるのは 1 つ 20 万字までです。長い文章は「比べ方」で行単位にしてください。' }; render(); return;
+    }
+    el.sub.textContent = '比べています…（' + H.size(a.length + b.length) + '）';
+    run.run(s.unit === 'char' ? 'diffChars' : 'diffLines', [a, b, opts()]).then(function (r) { last = r; shownRows = ROWS; render(); }, function (e) {
+      if (e && e.cancelled) return;
+      last = { error: '比べられませんでした（' + (e && e.message || e) + '）。' }; render();
+    });
+  }
+  var later = H.debounce(update, function () { return H.waitFor(H.val(el.a).length + H.val(el.b).length); });
+
+  function render() {
+    applySettings();
+    el.out.innerHTML = ''; el.msg.textContent = '';
+    el.viewRow.hidden = el.actions.hidden = true;
+    if (!last) { el.big.textContent = '—'; el.sub.textContent = 'A と B に文章を入れると出ます。'; return; }
+    if (last.error) { el.big.textContent = '—'; el.sub.textContent = last.error; return; }
+    var r = last, notes = [];
+    if (r.mode === 'line') {
+      var n = r.hunks.filter(function (h) { return h.t === 'ch'; }).length;
+      el.big.textContent = n ? H.num(n) + ' か所が違います' : '違いはありません';
+      el.sub.textContent = '削除 ' + H.num(r.del) + ' 行・追加 ' + H.num(r.add) + ' 行・同じ ' + H.num(r.same) + ' 行（A ' + H.num(r.linesA.length) + ' 行、B ' + H.num(r.linesB.length) + ' 行）';
+      if (r.eolA !== r.eolB && r.eolA !== 'なし' && r.eolB !== 'なし') notes.push('改行コードが違います（A: ' + r.eolA + '、B: ' + r.eolB + '）。');
+      if (r.finalEolA !== r.finalEolB && r.linesA.length && r.linesB.length) notes.push('最後の行の後ろの改行が、' + (r.finalEolA ? 'B' : 'A') + ' にはありません。');
+      if (n) el.out.innerHTML = r.hunks.length ? lineHtml(r) : '';
+      el.actions.hidden = !n; el.viewRow.hidden = !n;
+      $('d-copy-unified').hidden = false; $('d-all-label').hidden = false;
+    } else {
+      var changed = r.add + r.del;
+      el.big.textContent = changed ? '削除 ' + H.num(r.del) + ' 字・追加 ' + H.num(r.add) + ' 字' : '違いはありません';
+      el.sub.textContent = '同じ ' + H.num(r.same) + ' 字（A ' + H.num(r.lenA) + ' 字、B ' + H.num(r.lenB) + ' 字）';
+      if (changed) el.out.innerHTML = charHtml(r);
+      el.actions.hidden = !changed; el.viewRow.hidden = !changed;
+      $('d-copy-unified').hidden = true; $('d-all-label').hidden = true;
+    }
+    if (r.approx) notes.push('違いが多いため、途中から速さを優先して分けました。最短の分け方ではない所があります。');
+    if (notes.length) el.msg.textContent = notes.join(' ');
+  }
+
+  // --- 行単位の表示 ---
+  function seg(list) {
+    return list.map(function (p) { var t = H.esc(p[1]); return p[0] === '=' ? t : p[0] === '-' ? '<del>' + t + '</del>' : '<ins>' + t + '</ins>'; }).join('');
+  }
+  function lineHtml(r) {
+    var split = view() === 'split', all = S.get().all, ctx = 3, rows = [], count = 0, more = false;
+    function add(html) { if (count >= shownRows) { more = true; return false; } rows.push(html); count++; return true; }
+    function eqRow(i, j) {
+      var t = H.esc(r.linesB[j]);
+      return split ? '<tr class="eq"><td class="n">' + (i + 1) + '</td><td class="c">' + H.esc(r.linesA[i]) + '</td><td class="n">' + (j + 1) + '</td><td class="c">' + t + '</td></tr>'
+        : '<tr class="eq"><td class="n">' + (i + 1) + '</td><td class="n">' + (j + 1) + '</td><td class="s"></td><td class="c">' + t + '</td></tr>';
+    }
+    function fold(k) { return '<tr class="fold"><td colspan="4">… 同じ ' + H.num(k) + ' 行 …</td></tr>'; }
+    for (var x = 0; x < r.hunks.length && !more; x++) {
+      var h = r.hunks[x];
+      if (h.t === 'eq') {
+        var len = h.a1 - h.a0, first = x === 0, lastH = x === r.hunks.length - 1;
+        var head = all ? len : first ? 0 : Math.min(ctx, len), tail = all ? 0 : lastH ? 0 : Math.min(ctx, len - head);
+        for (var k = 0; k < head; k++) if (!add(eqRow(h.a0 + k, h.b0 + k))) break;
+        if (len - head - tail > 0 && !all) add(fold(len - head - tail));
+        for (k = len - tail; k < len; k++) if (!add(eqRow(h.a0 + k, h.b0 + k))) break;
+        continue;
+      }
+      var na = h.a1 - h.a0, nb = h.b1 - h.b0, inl = h.inline || [];
+      if (split) {
+        for (var p = 0; p < Math.max(na, nb); p++) {
+          var ia = p < na ? h.a0 + p : -1, jb = p < nb ? h.b0 + p : -1, pr = inl[p];
+          var ca = ia < 0 ? '' : pr ? seg(pr.a) : H.esc(r.linesA[ia]), cb = jb < 0 ? '' : pr ? seg(pr.b) : H.esc(r.linesB[jb]);
+          if (!add('<tr class="ch"><td class="n">' + (ia < 0 ? '' : ia + 1) + '</td><td class="c ' + (ia < 0 ? 'none' : 'del') + '">' + ca + '</td><td class="n">' + (jb < 0 ? '' : jb + 1) + '</td><td class="c ' + (jb < 0 ? 'none' : 'ins') + '">' + cb + '</td></tr>')) break;
+        }
+      } else {
+        for (p = 0; p < na; p++) if (!add('<tr class="ch"><td class="n">' + (h.a0 + p + 1) + '</td><td class="n"></td><td class="s">−</td><td class="c del">' + (inl[p] ? seg(inl[p].a) : H.esc(r.linesA[h.a0 + p])) + '</td></tr>')) break;
+        for (p = 0; p < nb; p++) if (!add('<tr class="ch"><td class="n"></td><td class="n">' + (h.b0 + p + 1) + '</td><td class="s">＋</td><td class="c ins">' + (inl[p] ? seg(inl[p].b) : H.esc(r.linesB[h.b0 + p])) + '</td></tr>')) break;
+      }
+    }
+    var head2 = split ? '<colgroup><col class="n"><col><col class="n"><col></colgroup><thead><tr><th class="n">A</th><th>元の文章（A）</th><th class="n">B</th><th>新しい文章（B）</th></tr></thead>'
+      : '<colgroup><col class="n"><col class="n"><col class="s"><col></colgroup><thead><tr><th class="n">A</th><th class="n">B</th><th class="s"></th><th>行</th></tr></thead>';
+    var html = '<div class="diff-scroll"><table class="diff ' + (split ? 'split' : 'unified') + '">' + head2 + '<tbody>' + rows.join('') + '</tbody></table></div>';
+    if (more) html += '<p class="more"><button type="button" class="btn-sub" id="d-more">続きを表示（' + H.num(ROWS) + ' 行ずつ）</button></p>';
+    return html;
+  }
+
+  // --- 文字単位の表示 ---
+  function charHtml(r) {
+    if (view() === 'split') return '<div class="char-split"><div><p class="small">元の文章（A）</p><pre class="char">' + seg(r.a) + '</pre></div><div><p class="small">新しい文章（B）</p><pre class="char">' + seg(r.b) + '</pre></div></div>';
+    return '<pre class="char">' + seg(r.inline) + '</pre>';
+  }
+
+  // --- 操作 ---
+  H.attachFile(el.a, $('d-a-file'), function (name, enc) { el.msg.textContent = name + ' を開きました' + (enc ? '（' + enc + '）' : '') + '。'; update(); });
+  H.attachFile(el.b, $('d-b-file'), function (name, enc) { el.msg.textContent = name + ' を開きました' + (enc ? '（' + enc + '）' : '') + '。'; update(); });
+  el.a.addEventListener('input', later); el.b.addEventListener('input', later);
+  form.addEventListener('change', function (e) {
+    var t = e.target;
+    if (t.name === 'd-unit') S.set({ unit: t.value });
+    else if (t.name === 'd-view') { S.set({ view: t.value }); render(); return; }
+    else if (t.id === 'd-space') S.set({ space: t.checked });
+    else if (t.id === 'd-case') S.set({ caseless: t.checked });
+    else if (t.id === 'd-width') S.set({ width: t.checked });
+    else if (t.id === 'd-all') { S.set({ all: t.checked }); shownRows = ROWS; render(); return; }
+    else return;
+    applySettings(); update();
+  });
+  el.out.addEventListener('click', function (e) { if (e.target.id === 'd-more') { shownRows += ROWS; render(); } });
+  $('d-swap').addEventListener('click', function () { var t = H.val(el.a); H.setRaw(el.a, H.val(el.b)); H.setRaw(el.b, t); update(); });
+  $('d-copy-unified').addEventListener('click', function () {
+    run.run('unified', [H.val(el.a), H.val(el.b), opts(), { nameA: 'A', nameB: 'B' }]).then(function (u) { H.copy(u, el.msg); }, function () {});
+  });
+  applySettings();
+  if (H.val(el.a) || H.val(el.b)) update();   // 戻るボタンでブラウザが入力を戻したとき
+})();
+
+// ---- app/json.js ----
+// ===========================
+// JSON 整形・検証の画面（計算は lib/json.js を Worker で）
+// ===========================
+(function () {
+  'use strict';
+  var form = document.getElementById('j-form');
+  if (!form) return;
+  var H = window.Henkan, $ = function (id) { return document.getElementById(id); };
+  var el = { input: $('j-in'), out: $('j-out'), big: $('j-big'), sub: $('j-sub'), err: $('j-err'), notes: $('j-notes'), msg: $('j-msg'), preview: $('j-preview') };
+  var S = H.settings('json', { mode: 'pretty', indent: '2', sortKeys: false, bom: true, tab: false });
+  // 出力は textarea ではなく結果の文字列から取る（textarea の value は CRLF を LF にしてしまう）
+  function rawOut() { return last && typeof last.text === 'string' ? last.text : ''; }
+  var run = H.runner(), last = null;
+
+  function applySettings() {
+    var s = S.get();
+    form.querySelectorAll('input[name=j-mode]').forEach(function (r) { r.checked = r.value === s.mode; });
+    $('j-indent').value = s.indent; $('j-sort').checked = s.sortKeys; $('j-bom').checked = s.bom; $('j-tab').checked = s.tab;
+    var st = { '2': '字下げ 2', '4': '字下げ 4', tab: '字下げ タブ' }[s.indent] + (s.sortKeys ? '・名前を並べ替え' : '');
+    $('j-opt').querySelector('.opt-state').textContent = st;
+  }
+
+  function update() {
+    var text = H.val(el.input), s = S.get();
+    if (text.trim() === '') { last = null; render(); return; }
+    el.sub.textContent = '確かめています…（' + H.size(text.length) + '）';
+    run.run('json', [text, { mode: s.mode, indent: s.indent === 'tab' ? '\t' : Number(s.indent), sortKeys: s.sortKeys, csv: { delimiter: s.tab ? '\t' : ',' } }])
+      .then(function (r) { last = r; render(); }, function (e) { if (e && e.cancelled) return; last = { ok: false, error: { message: String(e && e.message || e), line: 0, col: 0 } }; render(); });
+  }
+  var later = H.debounce(update, function () { return H.waitFor(H.val(el.input).length); });
+
+  // 誤りのある行の前後と、位置の印（^）
+  function around(text, e) {
+    var lines = text.split(/\r\n|\n|\r/), i = e.line - 1, out = [];
+    for (var k = Math.max(0, i - 2); k <= i && k < lines.length; k++) {
+      var t = lines[k];
+      if (t.length > 160) {   // 長い行（1 行に詰めた JSON など）は位置の前後だけ
+        var cps = Array.from(t), start = k === i ? Math.max(0, e.col - 60) : 0;
+        t = (start ? '…' : '') + cps.slice(start, start + 120).join('') + (cps.length > start + 120 ? '…' : '');
+        if (k === i) out.push({ n: k + 1, t: t, caret: e.col - start + (start ? 1 : 0) });
+        else out.push({ n: k + 1, t: t });
+      } else out.push({ n: k + 1, t: t, caret: k === i ? e.col : 0 });
+    }
+    var w = String(e.line).length;
+    return out.map(function (o) {
+      var head = String(o.n).padStart(w) + ' | ';
+      var line = head + o.t;
+      if (o.caret) {
+        // 全角の字は 2 桁ぶんとして ^ の位置をそろえる（等幅フォントの見た目）
+        var pre = Array.from(o.t).slice(0, o.caret - 1).map(function (c) { return /[ᄀ-ᅟ⺀-꓏가-힣豈-﫿︰-﹏＀-｠￠-￦]|[\uD800-\uDBFF]/.test(c) ? '  ' : c === '\t' ? '\t' : ' '; }).join('');
+        line += '\n' + ' '.repeat(head.length) + pre + '^';
+      }
+      return line;
+    }).join('\n');
+  }
+
+  function render() {
+    applySettings();
+    el.err.innerHTML = ''; el.notes.innerHTML = ''; el.preview.innerHTML = ''; el.msg.textContent = '';
+    if (!last) { el.big.textContent = '—'; el.sub.textContent = 'JSON を入れると、正しいかどうかと整えた形が出ます。'; H.showOut(el.out, ''); return; }
+    if (!last.ok) {
+      var e = last.error;
+      el.big.textContent = e.line ? e.line + ' 行 ' + e.col + ' 文字目に誤り' : '読めませんでした';
+      el.sub.textContent = e.message;
+      H.showOut(el.out, '');
+      if (e.line) el.err.innerHTML = '<div class="err-box">' + (e.hint ? H.esc(e.hint) : '') + '<pre>' + H.esc(around(H.val(el.input), e)) + '</pre>' +
+        '<button type="button" class="btn-sub" id="j-goto">入力欄のその位置へ</button></div>';
+      return;
+    }
+    var st = last.stats, kind = { obj: 'オブジェクト', arr: '配列', str: '文字列', num: '数', lit: '値' }[st.kind];
+    el.big.textContent = '正しい JSON です';
+    el.sub.textContent = '一番外は' + kind + '・値 ' + H.num(st.count) + ' 個・入れ子 ' + st.depth + ' 段';
+    var notes = [];
+    if (last.bom) notes.push('先頭に BOM（U+FEFF）がありました。出力には付けていません（RFC 8259 は付けないことを求めています）。');
+    if (last.dupCount) notes.push('同じ名前（キー）が ' + H.num(last.dupCount) + ' か所で重なっています（例: ' + last.dupKeys.slice(0, 3).map(function (d) { return '「' + d.key + '」' + d.line + ' 行'; }).join('、') + '）。多くのプログラムは後ろの値だけを使います。');
+    if (last.lossy.length) notes.push('JavaScript などでふつうに読むと丸められる大きな整数があります（例: ' + last.lossy.slice(0, 2).join('、') + '）。このツールは書いてあったとおりに出します。');
+    if (S.get().mode === 'csv') {
+      if (last.tableError) notes.push(last.tableError);
+      else {
+        notes.push(H.num(last.rows) + ' 行 × ' + H.num(last.cols) + ' 列の表にしました' + (last.header ? '（1 行目は名前。入れ子は「親.子」の列、配列は JSON のまま）' : '') + '。');
+        el.preview.innerHTML = previewTable(last.preview, last.header);
+      }
+    }
+    el.notes.innerHTML = notes.map(function (n) { return '<li>' + H.esc(n) + '</li>'; }).join('');
+    H.showOut(el.out, last.text);
+  }
+
+  function previewTable(rows, header) {
+    if (!rows || !rows.length) return '';
+    var head = header ? rows[0] : null, body = header ? rows.slice(1) : rows;
+    var h = '<p class="small">表の見本（先頭 ' + Math.min(body.length, 50) + ' 行）</p><div class="preview"><table>';
+    if (head) h += '<thead><tr><th class="rn"></th>' + head.map(function (c) { return '<th>' + H.esc(c) + '</th>'; }).join('') + '</tr></thead>';
+    h += '<tbody>' + body.slice(0, 50).map(function (r, i) { return '<tr><td class="rn">' + (i + 1) + '</td>' + r.map(function (c) { return '<td>' + H.esc(c) + '</td>'; }).join('') + '</tr>'; }).join('') + '</tbody></table></div>';
+    return h;
+  }
+
+  H.attachFile(el.input, $('j-file'), function (name, enc) { update(); el.msg.textContent = name + ' を開きました' + (enc ? '（' + enc + '）' : '') + '。'; });
+  el.input.addEventListener('input', later);
+  form.addEventListener('change', function (e) {
+    var t = e.target;
+    if (t.name === 'j-mode') S.set({ mode: t.value });
+    else if (t.id === 'j-indent') S.set({ indent: t.value });
+    else if (t.id === 'j-sort') S.set({ sortKeys: t.checked });
+    else if (t.id === 'j-bom') { S.set({ bom: t.checked }); applySettings(); return; }
+    else if (t.id === 'j-tab') S.set({ tab: t.checked });
+    else return;
+    update();
+  });
+  el.err.addEventListener('click', function (e) {
+    if (e.target.id !== 'j-goto' || !last || !last.error) return;
+    var i = last.error.index;
+    el.input.focus(); el.input.setSelectionRange(i, Math.min(H.val(el.input).length, i + 1));
+    // 選んだ位置が見えるように、行の高さから大まかにスクロールする
+    var lh = parseFloat(getComputedStyle(el.input).lineHeight) || 20;
+    el.input.scrollTop = Math.max(0, (last.error.line - 3) * lh);
+  });
+  $('j-copy').addEventListener('click', function () { if (rawOut()) H.copy(rawOut(), el.msg); });
+  $('j-save').addEventListener('click', function () {
+    if (!rawOut()) return;
+    var s = S.get(), csv = s.mode === 'csv';
+    H.download(rawOut(), csv ? (s.tab ? 'data.tsv' : 'data.csv') : 'data.json', csv ? 'text/csv' : 'application/json', csv && s.bom);
+    el.msg.textContent = csv && s.bom ? 'BOM 付きの UTF-8 で保存しました。' : 'UTF-8 で保存しました。';
+  });
+  applySettings();
+  if (H.val(el.input)) update();
+})();
+
+// ---- app/csv.js ----
+// ===========================
+// CSV 整形・変換の画面（計算は lib/csv.js を Worker で）
+// ===========================
+(function () {
+  'use strict';
+  var form = document.getElementById('c-form');
+  if (!form) return;
+  var H = window.Henkan, $ = function (id) { return document.getElementById(id); };
+  var el = { input: $('c-in'), out: $('c-out'), big: $('c-big'), sub: $('c-sub'), notes: $('c-notes'), msg: $('c-msg'), preview: $('c-preview') };
+  var S = H.settings('csv', { mode: 'csv', delim: 'auto', outDelim: ',', quote: 'auto', eol: 'crlf', bom: true, header: true, numbers: false });
+  // 出力は textarea ではなく結果の文字列から取る（textarea の value は CRLF を LF にしてしまう）
+  function rawOut() { return last && typeof last.text === 'string' ? last.text : ''; }
+  var run = H.runner(), last = null, encoding = '';
+  var TAB = function (v) { return v === 'tab' ? '\t' : v; };
+
+  function applySettings() {
+    var s = S.get();
+    form.querySelectorAll('input[name=c-mode]').forEach(function (r) { r.checked = r.value === s.mode; });
+    $('c-delim').value = s.delim; $('c-outdelim').value = s.outDelim; $('c-quote').value = s.quote; $('c-eol').value = s.eol;
+    $('c-bom').checked = s.bom; $('c-header').checked = s.header; $('c-numbers').checked = s.numbers;
+    var name = { auto: '区切りは自動', ',': '区切りはカンマ', tab: '区切りはタブ', ';': '区切りはセミコロン', '|': '区切りは縦棒' }[s.delim];
+    $('c-opt').querySelector('.opt-state').textContent = name + (s.bom ? '・BOM 付きで保存' : '');
+  }
+
+  function update() {
+    var text = H.val(el.input), s = S.get();
+    if (text === '') { last = null; render(); return; }
+    el.sub.textContent = '読んでいます…（' + H.size(text.length) + '）';
+    run.run('csv', [text, { delimiter: TAB(s.delim), mode: s.mode, header: s.header, numbers: s.numbers, outDelimiter: TAB(s.outDelim), quote: s.quote, eol: s.eol === 'lf' ? '\n' : '\r\n' }])
+      .then(function (r) { last = r; render(); }, function (e) { if (e && e.cancelled) return; last = { fail: String(e && e.message || e) }; render(); });
+  }
+  var later = H.debounce(update, function () { return H.waitFor(H.val(el.input).length); });
+
+  function render() {
+    applySettings();
+    el.notes.innerHTML = ''; el.preview.innerHTML = ''; el.msg.textContent = '';
+    if (!last) { el.big.textContent = '—'; el.sub.textContent = 'CSV を入れると、表の形と変換した結果が出ます。'; H.showOut(el.out, ''); return; }
+    if (last.fail) { el.big.textContent = '—'; el.sub.textContent = '読めませんでした（' + last.fail + '）。'; return; }
+    var r = last, cols = Object.keys(r.widths).map(Number), maxCols = Math.max.apply(null, cols.concat([0]));
+    var dname = window.HenkanCsv.NAMES[r.delimiter];
+    el.big.textContent = H.num(r.rowCount) + ' 行 × ' + H.num(maxCols) + ' 列';
+    el.sub.textContent = '区切り: ' + dname + (S.get().delim === 'auto' ? '（自動で判定）' : '') + (encoding ? '・文字コード: ' + encoding : '');
+    var notes = [];
+    if (r.error) notes.push(r.error.message + ' その行から後ろは 1 つのフィールドとして読みました。');
+    if (cols.length > 1) {
+      var list = cols.sort(function (a, b) { return r.widths[b] - r.widths[a]; }).map(function (c) { return c + ' 列が ' + H.num(r.widths[c]) + ' 行'; });
+      notes.push('列の数が行によって違います（' + list.slice(0, 4).join('、') + '）。区切りか「"」の囲み方を確かめてください。');
+    }
+    if (S.get().delim === 'auto' && !r.detected.sure && maxCols > 1) notes.push('区切りの判定に自信がありません。違っていたら「読み方・書き方」で選んでください。');
+    r.warnings.slice(0, 5).forEach(function (w) { notes.push(w.message); });
+    if (r.warnings.length > 5) notes.push('ほかにも注意が ' + (r.warnings.length - 5) + ' 件あります。');
+    el.notes.innerHTML = notes.map(function (n) { return '<li>' + H.esc(n) + '</li>'; }).join('');
+    el.preview.innerHTML = previewTable(r.preview, maxCols);
+    H.showOut(el.out, r.text);
+  }
+
+  function previewTable(rows, width) {
+    if (!rows.length) return '';
+    var n = Math.min(rows.length, 100);
+    var h = '<p class="small">表の見本（先頭 ' + n + ' 行。セルの中の改行はそのまま）</p><div class="preview"><table><tbody>';
+    for (var i = 0; i < n; i++) {
+      var r = rows[i], cells = '';
+      for (var k = 0; k < width; k++) cells += '<td>' + (k < r.length ? H.esc(r[k]) : '') + '</td>';
+      h += '<tr><td class="rn">' + (i + 1) + '</td>' + cells + '</tr>';
+    }
+    return h + '</tbody></table></div>';
+  }
+
+  H.attachFile(el.input, $('c-file'), function (name, enc) { encoding = enc || ''; update(); });
+  el.input.addEventListener('input', function () { encoding = ''; later(); });
+  form.addEventListener('change', function (e) {
+    var t = e.target, map = { 'c-delim': 'delim', 'c-outdelim': 'outDelim', 'c-quote': 'quote', 'c-eol': 'eol' };
+    if (t.name === 'c-mode') S.set({ mode: t.value });
+    else if (map[t.id]) { var p = {}; p[map[t.id]] = t.value; S.set(p); }
+    else if (t.id === 'c-bom') { S.set({ bom: t.checked }); applySettings(); return; }
+    else if (t.id === 'c-header') S.set({ header: t.checked });
+    else if (t.id === 'c-numbers') S.set({ numbers: t.checked });
+    else return;
+    update();
+  });
+  $('c-copy').addEventListener('click', function () { if (rawOut()) H.copy(rawOut(), el.msg); });
+  $('c-save').addEventListener('click', function () {
+    if (!rawOut()) return;
+    var s = S.get(), json = s.mode === 'json', tsv = !json && (s.outDelim === 'tab' || (s.outDelim === 'same' && last && last.delimiter === '\t'));
+    H.download(rawOut(), json ? 'data.json' : tsv ? 'data.tsv' : 'data.csv', json ? 'application/json' : 'text/csv', !json && s.bom);
+    el.msg.textContent = !json && s.bom ? 'BOM 付きの UTF-8 で保存しました（Excel でそのまま開けます）。' : 'UTF-8 で保存しました。';
+  });
+  applySettings();
+  if (H.val(el.input)) update();
+})();
+
+// ---- app/zenkaku.js ----
+// ===========================
+// 全角・半角・かな変換の画面（計算は lib/kana.js を Worker で）
+// ===========================
+(function () {
+  'use strict';
+  var form = document.getElementById('k-form');
+  if (!form) return;
+  var H = window.Henkan, $ = function (id) { return document.getElementById(id); };
+  var el = { input: $('k-in'), out: $('k-out'), big: $('k-big'), sub: $('k-sub'), msg: $('k-msg'), pairs: $('k-pairs'), pairsBox: $('k-pairs-box') };
+  // 変換のしかた（上の選択）と、くわしい設定の中身
+  var PRESETS = {
+    std: { alnum: 'half', symbol: 'none', space: 'none', kana: 'full', hira: 'none' },
+    stdAll: { alnum: 'half', symbol: 'half', space: 'half', kana: 'full', hira: 'none' },
+    kanaFull: { alnum: 'none', symbol: 'none', space: 'none', kana: 'full', hira: 'none' },
+    alnumHalf: { alnum: 'half', symbol: 'none', space: 'none', kana: 'none', hira: 'none' },
+    allFull: { alnum: 'full', symbol: 'full', space: 'full', kana: 'full', hira: 'none' },
+    allHalf: { alnum: 'half', symbol: 'half', space: 'half', kana: 'half', hira: 'none' },
+    toKata: { alnum: 'none', symbol: 'none', space: 'none', kana: 'none', hira: 'kata' },
+    toHira: { alnum: 'none', symbol: 'none', space: 'none', kana: 'full', hira: 'hira' },
+  };
+  var FIELDS = ['alnum', 'symbol', 'space', 'kana', 'hira'];
+  var S = H.settings('kana', { preset: 'std', alnum: 'half', symbol: 'none', space: 'none', kana: 'full', hira: 'none',
+    trimEnd: false, collapse: false, edges: false, blank: 'keep', eol: 'keep', nfkc: false });
+  // 出力は textarea ではなく結果の文字列から取る（textarea の value は CRLF を LF にしてしまう）
+  function rawOut() { return last && typeof last.text === 'string' ? last.text : ''; }
+  var run = H.runner(), last = null;
+  var NAME = { half: '半角', full: '全角', none: '', kata: 'カタカナに', hira: 'ひらがなに' };
+
+  function applySettings() {
+    var s = S.get();
+    if (!PRESETS[s.preset] && s.preset !== 'custom') s.preset = 'std';
+    if (PRESETS[s.preset]) Object.assign(s, PRESETS[s.preset]);
+    $('k-preset').value = s.preset;
+    FIELDS.forEach(function (f) { $('k-' + f).value = s[f]; });
+    $('k-trimend').checked = s.trimEnd; $('k-collapse').checked = s.collapse; $('k-edges').checked = s.edges;
+    $('k-blank').value = s.blank; $('k-eol').value = s.eol; $('k-nfkc').checked = s.nfkc;
+    var parts = [];
+    if (s.alnum !== 'none') parts.push('英数字' + NAME[s.alnum]);
+    if (s.symbol !== 'none') parts.push('記号' + NAME[s.symbol]);
+    if (s.space !== 'none') parts.push('空白' + NAME[s.space]);
+    if (s.kana !== 'none') parts.push('カナ' + NAME[s.kana]);
+    if (s.hira !== 'none') parts.push(NAME[s.hira]);
+    var tidy = s.trimEnd || s.collapse || s.edges || s.blank !== 'keep' || s.eol !== 'keep';
+    if (tidy) parts.push('空白の整理');
+    if (s.nfkc) parts.push('NFKC');
+    $('k-opt').querySelector('.opt-state').textContent = parts.join('・') || '何も変えない';
+  }
+
+  function opts() {
+    var s = S.get(), o = {};
+    FIELDS.forEach(function (f) { o[f] = s[f]; });
+    var tidy = { trimEnd: s.trimEnd, collapseSpaces: s.collapse, trimEdges: s.edges, blankLines: s.blank, eol: s.eol };
+    if (s.trimEnd || s.collapse || s.edges || s.blank !== 'keep' || s.eol !== 'keep') o.tidy = tidy;
+    o.nfkc = s.nfkc;
+    return o;
+  }
+
+  function update() {
+    var text = H.val(el.input);
+    if (text === '') { last = null; render(); return; }
+    run.run('kana', [text, opts()]).then(function (r) { last = r; render(); }, function (e) { if (e && e.cancelled) return; last = { fail: String(e && e.message || e) }; render(); });
+  }
+  var later = H.debounce(update, function () { return H.waitFor(H.val(el.input).length); });
+
+  function render() {
+    applySettings();
+    el.msg.textContent = ''; el.pairs.innerHTML = ''; el.pairsBox.hidden = true;
+    if (!last) { el.big.textContent = '—'; el.sub.textContent = '文章を入れると、変換した結果が出ます。'; H.showOut(el.out, ''); return; }
+    if (last.fail) { el.big.textContent = '—'; el.sub.textContent = '変換できませんでした（' + last.fail + '）。'; return; }
+    var same = last.text === H.val(el.input);
+    el.big.textContent = last.changed ? H.num(last.changed) + ' か所を変換' : same ? '変える字はありませんでした' : '空白・改行を整理しました';
+    var sub = [];
+    var keys = Object.keys(last.pairs);
+    if (keys.indexOf('NFKC 正規化') >= 0) sub.push('NFKC で変わった字があります');
+    var kept = Object.keys(last.kept);
+    if (kept.length) sub.push('半角の字が無いため残した字: ' + kept.map(function (k) { return k + '（' + last.kept[k] + '）'; }).join('・'));
+    var linesIn = H.val(el.input).split(/\r\n|\n|\r/).length, linesOut = last.text.split(/\r\n|\n|\r/).length;
+    if (linesIn !== linesOut) sub.push('行の数 ' + H.num(linesIn) + ' → ' + H.num(linesOut));
+    el.sub.textContent = sub.join('。') || (last.changed ? '結果を下の欄からコピーできます。' : '');
+    H.showOut(el.out, last.text);
+    var list = keys.filter(function (k) { return k !== 'NFKC 正規化'; }).sort(function (a, b) { return last.pairs[b] - last.pairs[a]; });
+    if (list.length) {
+      el.pairsBox.hidden = false;
+      el.pairs.innerHTML = list.slice(0, 60).map(function (k) { return '<li>' + H.esc(k) + ' ×' + H.num(last.pairs[k]) + '</li>'; }).join('') + (list.length > 60 ? '<li>ほか ' + (list.length - 60) + ' 種類</li>' : '');
+    }
+  }
+
+  H.attachFile(el.input, $('k-file'), function (name, enc) { update(); el.msg.textContent = name + ' を開きました' + (enc ? '（' + enc + '）' : '') + '。'; });
+  el.input.addEventListener('input', later);
+  form.addEventListener('change', function (e) {
+    var t = e.target, id = t.id.replace(/^k-/, '');
+    if (t.id === 'k-preset') S.set({ preset: t.value });
+    else if (FIELDS.indexOf(id) >= 0) { var p = { preset: 'custom' }; p[id] = t.value; S.set(p); }
+    else if (t.id === 'k-trimend') S.set({ trimEnd: t.checked });
+    else if (t.id === 'k-collapse') S.set({ collapse: t.checked });
+    else if (t.id === 'k-edges') S.set({ edges: t.checked });
+    else if (t.id === 'k-blank') S.set({ blank: t.value });
+    else if (t.id === 'k-eol') S.set({ eol: t.value });
+    else if (t.id === 'k-nfkc') S.set({ nfkc: t.checked });
+    else return;
+    if (t.id === 'k-preset' && t.value === 'custom') $('k-opt').open = true;
+    update();
+  });
+  $('k-copy').addEventListener('click', function () { if (rawOut()) H.copy(rawOut(), el.msg); });
+  $('k-save').addEventListener('click', function () { if (rawOut()) { H.download(rawOut(), 'henkan.txt', 'text/plain'); el.msg.textContent = 'UTF-8 で保存しました。'; } });
+  applySettings();
+  if (H.val(el.input)) update();
+})();
+
+// ---- app/boot.js ----
+// ===========================
+// どのページでも最後に読む: 設定の書き出し・読み込みと、オフライン対応（Service Worker）の登録
+// ===========================
+(function () {
+  'use strict';
+  window.Henkan.wireBackup(document.getElementById('file-box'));
+  // 登録は ./sw.js（リポジトリの直下）だけ。scope: '/' を指定しない（README「ツールを追加するとき」13）。1 ファイル版では登録しない
+  var root = document.body.getAttribute('data-root');
+  if (root && 'serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+    addEventListener('load', function () { navigator.serviceWorker.register(root + 'sw.js').catch(function () {}); });
+  }
+})();
+
+// ---- タブ（1 ファイル版だけ）。選んだタブは # に入れる（保存しない） ----
+(function () {
+  'use strict';
+  var btns = document.querySelectorAll('.tabs [role=tab]');
+  function show(key, focus) {
+    btns.forEach(function (b) {
+      var on = b.getAttribute('data-tab') === key;
+      b.setAttribute('aria-selected', on ? 'true' : 'false'); b.tabIndex = on ? 0 : -1;
+      document.getElementById('tab-' + b.getAttribute('data-tab')).hidden = !on;
+      if (on && focus) b.focus();
+    });
+  }
+  btns.forEach(function (b, i) {
+    b.addEventListener('click', function () { show(b.getAttribute('data-tab')); history.replaceState(null, '', '#' + b.getAttribute('data-tab')); });
+    b.addEventListener('keydown', function (e) {
+      var d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+      if (!d) return;
+      var n = btns[(i + d + btns.length) % btns.length]; show(n.getAttribute('data-tab'), true);
+    });
+  });
+  var h = (location.hash || '').slice(1);
+  if (document.getElementById('tab-' + h)) show(h);
+})();
+
+</script>
+</body>
+</html>

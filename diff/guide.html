@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>テキスト差分（比較）ツールの使い方｜全角半角を無視して比較｜yorozu-craft</title>
+  <meta name="description" content="テキスト差分（比較）ツールの使い方。行と文字の単位、空白・大文字小文字・全角半角を無視する比べ方、unified 形式、大きなファイル。">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://yorozu-craft.com/henkan/diff/guide.html">
+
+  <meta property="og:title" content="テキスト差分（比較）ツールの使い方｜全角半角を無視して比較">
+  <meta property="og:description" content="テキスト差分（比較）ツールの使い方。行と文字の単位、空白・大文字小文字・全角半角を無視する比べ方、unified 形式、大きなファイル。">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://yorozu-craft.com/henkan/diff/guide.html">
+  <meta property="og:site_name" content="yorozu-craft">
+  <meta property="og:locale" content="ja_JP">
+  <meta property="og:image" content="https://yorozu-craft.com/henkan/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+
+  <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "全角と半角の違いを無視して比較できますか？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "はい。「比べ方」の「全角・半角」を選ぶと、ｶﾞ と ガ、Ａ と A、全角と半角のスペースを同じとみなします。表示は元の文字のままです。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Word や PDF の文章の差分を比べられますか？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "文字だけを比べます。Word や PDF から文章をコピーして貼れば比べられますが、書式やレイアウトの違いは比べません。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "比較した文章はどこかに送信されますか？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "送信しません。比べる計算はすべてこの端末のブラウザの中で行い、貼り付けた文章は保存もしません。"
+      }
+    }
+  ]
+}
+  </script>
+
+  <meta name="google-adsense-account" content="ca-pub-5375267956079717">
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5375267956079717"
+     crossorigin="anonymous"></script>
+
+  <link rel="icon" href="../favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="../apple-touch-icon.png">
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+
+  <header class="app-header">
+    <h1>テキスト差分の使い方</h1>
+    <p class="subtitle">使い方・しくみ・よくある質問・ご利用上の注意</p>
+  </header>
+
+  <main class="app-main">
+
+    <p class="card" style="text-align:center"><a href="./">▶ テキスト差分 を使う</a></p>
+
+    <article class="card content" id="howto">
+      <h2>テキスト差分の使い方</h2>
+      <ol>
+        <li>A に元の文章、B に新しい文章を貼る（ファイルを開く・ドロップも可）</li>
+        <li>違いが色分けで出る（赤は A だけ、緑は B だけの行・字）</li>
+        <li>「比べ方」で単位（行・文字）と、同じとみなす違いを選ぶ</li>
+        <li>「unified 形式でコピー」で diff -u と同じ形の文字にする</li>
+      </ol>
+    </article>
+
+    <article class="card content" id="how">
+      <h2>違いの見つけ方</h2>
+      <p>違いがいちばん少なくなる分け方を、Myers の差分アルゴリズム（1986 年）で探します。GNU diff と同じ系統の方法です。</p>
+      <details>
+        <summary>くわしく</summary>
+        <ul>
+          <li>行単位では、変わった行どうしを同じ位置で組にして、似ている組だけ行の中の違う字を濃い色で示します</li>
+          <li>文字単位では、濁点つきの半角カナ（ｶﾞ）や絵文字の結合も 1 字として比べます。1 つ 20 万字まで</li>
+          <li>「同じとみなす違い」を選んでも、表示は元の文字のままです。比べるときだけ、空白を除く・小文字にする・全角半角をそろえる（<a href="../zenkaku/guide.html#rules">全角・半角の対応表</a>と同じ規則）</li>
+          <li>改行コード（CRLF・LF）と最後の行の改行の有無は比べず、違うときは結果の下に書きます</li>
+          <li>違いがとても多い大きな入力では、途中から速さを優先します（最短でない分け方になることがあり、そのときは結果の下に書きます）</li>
+          <li>計算は画面とは別の処理（Web Worker）で行います。6 万行・約 230 万字の 2 つの文章（600 か所の違い）で、結果まで約 1.5 秒でした（2026-09-25、PC の Chromium で計測）</li>
+        </ul>
+      </details>
+    </article>
+
+    <article class="card content" id="faq">
+      <h2>よくある質問</h2>
+      <dl class="faq">
+        <dt>全角と半角の違いを無視して比較できますか？</dt>
+        <dd>はい。「比べ方」の「全角・半角」を選ぶと、ｶﾞ と ガ、Ａ と A、全角と半角のスペースを同じとみなします。表示は元の文字のままです。</dd>
+        <dt>Word や PDF の文章の差分を比べられますか？</dt>
+        <dd>文字だけを比べます。Word や PDF から文章をコピーして貼れば比べられますが、書式やレイアウトの違いは比べません。</dd>
+        <dt>比較した文章はどこかに送信されますか？</dt>
+        <dd>送信しません。比べる計算はすべてこの端末のブラウザの中で行い、貼り付けた文章は保存もしません。</dd>
+      </dl>
+    </article>
+
+    <article class="card content" id="notes">
+      <h2>ご利用上の注意・データの扱い</h2>
+      <ul>
+        <li>貼り付けた文章やファイルは、この端末のブラウザの中だけで処理し、外部には送信しません。文章は保存しません。</li>
+        <li>設定はこの端末のブラウザ（localStorage、キー <code>henkan_settings</code>）にだけ保存され、外部には送信されません。書き出し・読み込み・消去はツールの画面のボタンから。</li>
+        <li>結果は元の文章と見比べてから使ってください。<a href="../guide.html">データの出どころとライセンス</a>もあわせてどうぞ。</li>
+      </ul>
+      <p><a href="https://docs.google.com/forms/d/e/1FAIpQLSd8B90qh5lEIyr25iw1jOjdQjOyaPZ1_z2wMB4kH-EmEeJYWw/viewform?usp=pp_url&amp;entry.585564634=henkan" target="_blank" rel="noopener">ご要望・不具合の報告（Google フォーム）</a>：いただいた内容をもとに直します。お返事はしていません。</p>
+      <p>サイト全体の運営者情報・免責事項は<a href="../../about.html">こちら</a>、プライバシーポリシーは<a href="../../privacy-policy.html">こちら</a>です（すべてのツールで共通）。</p>
+    </article>
+
+    <article class="card content" id="changelog">
+      <h2>更新履歴</h2>
+      <ul>
+        <li><time datetime="2026-09-25">2026年9月25日</time> 公開</li>
+      </ul>
+    </article>
+
+  </main>
+
+  <footer class="app-footer">
+    <nav class="footer-nav" aria-label="フッターナビゲーション">
+      <ul>
+        <li><a href="../../">yorozu-craft トップ</a></li>
+        <li><a href="../">テキスト変換</a></li>
+        <li><a href="./">テキスト差分</a></li>
+        <li><a href="./guide.html" aria-current="page">使い方・よくある質問</a></li>
+        <li><a href="../../about.html">運営者情報</a></li>
+        <li><a href="../../privacy-policy.html">プライバシーポリシー</a></li>
+      </ul>
+    </nav>
+    <p>&copy; 2026 yorozu-craft. All rights reserved.</p>
+  </footer>
+
+  <!-- Cloudflare Web Analytics（Cookie を使わないアクセス解析） --><script type='module' src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "b79bf821e1fd4b6683866d493b1de426"}'></script><!-- End Cloudflare Web Analytics -->
+</body>
+</html>

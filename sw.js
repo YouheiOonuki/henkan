@@ -1,15 +1,15 @@
 /**
- * __TITLE__ - sw.js（Service Worker。オフライン対応にするツールだけ使う）
+ * テキスト変換（henkan） - sw.js（Service Worker。オフライン対応にするツールだけ使う）
  * hoshizora-sanpo の sw.js と同じ方針:
  * - ネットワーク優先。オンラインなら常に最新を取得してキャッシュも更新し、オフライン（または応答が遅い）ときだけキャッシュを返す
  * - yorozu-craft.com の各ツールは同じオリジンでキャッシュ領域を共有するため、
- *   キャッシュ名には必ず "__REPO__-" を付け、ほかのツールのキャッシュには触れない
+ *   キャッシュ名には必ず "henkan-" を付け、ほかのツールのキャッシュには触れない
  * - 自分のパス配下だけを扱う。広告・アクセス解析など別オリジンや、ほかのツールのファイルは横取りしない
  */
 
 'use strict';
 
-const CACHE_PREFIX = '__REPO__-';
+const CACHE_PREFIX = 'henkan-';
 const CACHE_NAME   = `${CACHE_PREFIX}v1`; // キャッシュする中身の構成を変えたら上げる
 
 /** 初回インストール時に取得しておくファイル */
@@ -17,11 +17,29 @@ const PRECACHE_URLS = [
   './',
   './index.html',
   './guide.html',
+  './diff/',
+  './diff/guide.html',
+  './json/',
+  './json/guide.html',
+  './csv/',
+  './csv/guide.html',
+  './zenkaku/',
+  './zenkaku/guide.html',
+  './henkan.html',
   './style.css',
-  './constants.js',
-  './calc.js',
-  './screen.js',
-  './main.js',
+  './reset-storage.js',
+  './lib/kana.js',
+  './lib/diff.js',
+  './lib/json.js',
+  './lib/csv.js',
+  './lib/ops.js',
+  './lib/worker.js',
+  './app/common.js',
+  './app/diff.js',
+  './app/json.js',
+  './app/csv.js',
+  './app/zenkaku.js',
+  './app/boot.js',
   './manifest.webmanifest',
   './favicon.svg',
   './apple-touch-icon.png',

@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>全角・半角・かな変換ツール｜ｶﾞ→ガも正しく｜yorozu-craft</title>
+  <meta name="description" content="英数字・記号・空白の全角⇔半角、半角カナ⇔全角カナ（ｶﾞ→ガのように濁点も 1 文字に）、ひらがな⇔カタカナ、行末の空白や空行の整理。対応表つき。入力は外部に送信しません。">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://yorozu-craft.com/henkan/zenkaku/">
+
+  <meta property="og:title" content="全角・半角・かな変換ツール｜yorozu-craft">
+  <meta property="og:description" content="英数字・カタカナの全角半角（ｶﾞ→ガも正しく）、ひらがな⇔カタカナ、空白・改行の整理。">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://yorozu-craft.com/henkan/zenkaku/">
+  <meta property="og:site_name" content="yorozu-craft">
+  <meta property="og:locale" content="ja_JP">
+  <meta property="og:image" content="https://yorozu-craft.com/henkan/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="theme-color" content="#8b4513" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#1c1814" media="(prefers-color-scheme: dark)">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "全角・半角・かな変換ツール",
+    "description": "英数字・記号・空白の全角半角、半角カナと全角カナ（濁点も 1 文字に）、ひらがなとカタカナを変換します。入力は外部に送信しません。",
+    "url": "https://yorozu-craft.com/henkan/zenkaku/",
+    "applicationCategory": "UtilitiesApplication",
+    "operatingSystem": "All",
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "JPY" },
+    "inLanguage": "ja"
+  }
+  </script>
+
+  <meta name="google-adsense-account" content="ca-pub-5375267956079717">
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5375267956079717"
+     crossorigin="anonymous"></script>
+
+  <link rel="icon" href="../favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="../apple-touch-icon.png">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body data-root="../">
+
+  <header class="app-header">
+    <h1>全角・半角・かな変換</h1>
+    <p class="subtitle">英数字・カタカナの全角半角、ひらがな⇔カタカナ、空白の整理。入力は外部に送信しません。</p>
+  </header>
+
+  <main class="app-main">
+<!-- TOOL-BEGIN zenkaku -->
+    <form id="k-form" autocomplete="off" onsubmit="return false">
+      <fieldset class="card req">
+        <legend>変換する文章</legend>
+        <div class="field">
+          <div class="label-row"><label for="k-in">文章</label><button type="button" class="btn-sub" id="k-file">ファイルを開く</button></div>
+          <textarea id="k-in" class="io" rows="7" spellcheck="false" placeholder="ｶﾞｲﾄﾞﾌﾞｯｸ　ＡＢＣ－１２３"></textarea>
+        </div>
+        <div class="field">
+          <label for="k-preset">変換のしかた</label>
+          <select id="k-preset" class="wide">
+            <option value="std">表記をそろえる（英数字は半角、カナは全角）</option>
+            <option value="stdAll">英数字・記号・空白は半角、カナは全角</option>
+            <option value="kanaFull">半角カナだけ全角にする</option>
+            <option value="alnumHalf">全角の英数字だけ半角にする</option>
+            <option value="allFull">すべて全角にする</option>
+            <option value="allHalf">すべて半角にする（カナも）</option>
+            <option value="toKata">ひらがな → カタカナ</option>
+            <option value="toHira">カタカナ → ひらがな</option>
+            <option value="custom">くわしい設定で選ぶ</option>
+          </select>
+        </div>
+      </fieldset>
+
+      <section class="card result-card" id="k-result" tabindex="-1" aria-labelledby="k-h-result">
+        <h2 id="k-h-result">結果</h2>
+        <div aria-live="polite">
+          <p class="result-big" id="k-big">—</p>
+          <p class="result-sub" id="k-sub">文章を入れると、変換した結果が出ます。</p>
+        </div>
+        <label for="k-out" class="small">変換した文章</label>
+        <textarea id="k-out" class="io out" rows="7" spellcheck="false" readonly></textarea>
+        <div class="btn-row">
+          <button type="button" class="btn-sub" id="k-copy">コピー</button>
+          <button type="button" class="btn-sub" id="k-save">ファイルに保存</button>
+        </div>
+        <p class="small" id="k-msg" aria-live="polite"></p>
+        <details class="rels" id="k-pairs-box" hidden>
+          <summary>変えた字の内訳</summary>
+          <ul class="pairs" id="k-pairs"></ul>
+        </details>
+      </section>
+
+      <div class="opts">
+        <details class="card opt" id="k-opt">
+          <summary>くわしい設定: <span class="opt-state">—</span></summary>
+          <div class="select-row">
+            <div class="field"><label for="k-alnum">英数字</label><select id="k-alnum"><option value="none">変えない</option><option value="half">半角に</option><option value="full">全角に</option></select></div>
+            <div class="field"><label for="k-symbol">記号（! # ( ) など）</label><select id="k-symbol"><option value="none">変えない</option><option value="half">半角に</option><option value="full">全角に</option></select></div>
+            <div class="field"><label for="k-space">空白</label><select id="k-space"><option value="none">変えない</option><option value="half">半角に</option><option value="full">全角に</option></select></div>
+            <div class="field"><label for="k-kana">カタカナ</label><select id="k-kana"><option value="none">変えない</option><option value="full">全角に</option><option value="half">半角に</option></select></div>
+            <div class="field"><label for="k-hira">ひらがな・カタカナ</label><select id="k-hira"><option value="none">変えない</option><option value="kata">ひらがな → カタカナ</option><option value="hira">カタカナ → ひらがな</option></select></div>
+          </div>
+          <fieldset class="plain">
+            <legend>空白・改行の整理</legend>
+            <label class="inline-check"><input type="checkbox" id="k-trimend"> 行末の空白を消す</label>
+            <label class="inline-check"><input type="checkbox" id="k-collapse"> 続いた空白を 1 つにする</label>
+            <label class="inline-check"><input type="checkbox" id="k-edges"> 先頭と末尾の空行を消す</label>
+            <div class="select-row">
+              <div class="field"><label for="k-blank">空行</label><select id="k-blank"><option value="keep">そのまま</option><option value="one">続いた空行を 1 行に</option><option value="none">すべて消す</option></select></div>
+              <div class="field"><label for="k-eol">改行コード</label><select id="k-eol"><option value="keep">そのまま</option><option value="lf">LF</option><option value="crlf">CRLF</option></select></div>
+            </div>
+          </fieldset>
+          <label class="inline-check"><input type="checkbox" id="k-nfkc"> 最後に Unicode の NFKC 正規化もかける（①→1、㈱→(株) なども変わる）</label>
+          <p class="small">対応表と、NFKC だけにしない理由は<a href="https://yorozu-craft.com/henkan/zenkaku/guide.html#rules">使い方</a>に。</p>
+        </details>
+      </div>
+    </form>
+<!-- TOOL-END -->
+
+    <details class="card opt no-print" id="file-box">
+      <summary>設定の保存・書き出し</summary>
+      <p class="small">整え方などの設定はこの端末のブラウザ（localStorage、キー <code>henkan_settings</code>）にだけ保存され、外部には送信されません。貼り付けた文章は保存しません。書き出し・読み込み・消去はこの画面のボタンから。</p>
+      <div class="btn-row">
+        <button type="button" class="btn backup-export">ファイルに書き出す</button>
+        <button type="button" class="btn backup-import">ファイルから読み込む</button>
+        <button type="button" class="btn btn-reset" data-reset-storage="henkan_">保存した内容をすべて消す（初期状態に戻す）</button>
+      </div>
+      <input type="file" accept=".json,application/json" hidden>
+      <p class="small backup-msg" aria-live="polite"></p>
+    </details>
+
+    <p class="small"><a href="./guide.html">使い方・よくある質問</a> ／ ほかの変換: <a href="../diff/">テキスト差分</a>・<a href="../json/">JSON 整形</a>・<a href="../csv/">CSV 整形</a> ／ <a href="../">通信しない 1 ファイル版</a></p>
+  </main>
+
+  <footer class="app-footer">
+    <nav class="footer-nav" aria-label="フッターナビゲーション">
+      <ul>
+        <li><a href="../../">yorozu-craft トップ</a></li>
+        <li><a href="../">テキスト変換</a></li>
+        <li><a href="./" aria-current="page">全角・半角・かな</a></li>
+        <li><a href="./guide.html">使い方・よくある質問</a></li>
+        <li><a href="../../about.html">運営者情報</a></li>
+        <li><a href="../../privacy-policy.html">プライバシーポリシー</a></li>
+      </ul>
+    </nav>
+    <p>&copy; 2026 yorozu-craft. All rights reserved.</p>
+  </footer>
+
+  <script src="../lib/kana.js"></script>
+  <script src="../lib/diff.js"></script>
+  <script src="../lib/json.js"></script>
+  <script src="../lib/csv.js"></script>
+  <script src="../lib/ops.js"></script>
+  <script src="../reset-storage.js"></script>
+  <script src="../app/common.js"></script>
+  <script src="../app/zenkaku.js"></script>
+  <script src="../app/boot.js"></script>
+  <!-- Cloudflare Web Analytics（Cookie を使わないアクセス解析） --><script type='module' src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "b79bf821e1fd4b6683866d493b1de426"}'></script><!-- End Cloudflare Web Analytics -->
+</body>
+</html>

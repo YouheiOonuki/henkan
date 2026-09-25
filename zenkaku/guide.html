@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>全角・半角・かな変換の使い方｜対応表と NFKC との違い｜yorozu-craft</title>
+  <meta name="description" content="全角・半角・かな変換ツールの使い方。英数字・カタカナの全角半角の対応表、濁点の合わせ方、ひらがなとカタカナ、Unicode NFKC との違い。">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://yorozu-craft.com/henkan/zenkaku/guide.html">
+
+  <meta property="og:title" content="全角・半角・かな変換の使い方｜対応表と NFKC との違い">
+  <meta property="og:description" content="全角・半角・かな変換ツールの使い方。英数字・カタカナの全角半角の対応表、濁点の合わせ方、ひらがなとカタカナ、Unicode NFKC との違い。">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://yorozu-craft.com/henkan/zenkaku/guide.html">
+  <meta property="og:site_name" content="yorozu-craft">
+  <meta property="og:locale" content="ja_JP">
+  <meta property="og:image" content="https://yorozu-craft.com/henkan/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+
+  <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "半角カナを全角にすると濁点が 2 文字に分かれます",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "このツールは ｶﾞ を ガ の 1 文字に合わせます。濁点を付けられない字（ｱﾞ など）の濁点だけ、全角の ゛ にします。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "ひらがなをカタカナに変換できますか？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "はい。「変換のしかた」で「ひらがな → カタカナ」を選びます。反対の「カタカナ → ひらがな」では、半角カナもひらがなにします。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "全角スペースを半角にできますか？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "はい。「英数字・記号・空白は半角、カナは全角」を選ぶか、くわしい設定で空白を「半角に」します。続いた空白を 1 つにすることもできます。"
+      }
+    }
+  ]
+}
+  </script>
+
+  <meta name="google-adsense-account" content="ca-pub-5375267956079717">
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5375267956079717"
+     crossorigin="anonymous"></script>
+
+  <link rel="icon" href="../favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="../apple-touch-icon.png">
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+
+  <header class="app-header">
+    <h1>全角・半角・かな変換の使い方</h1>
+    <p class="subtitle">使い方・しくみ・よくある質問・ご利用上の注意</p>
+  </header>
+
+  <main class="app-main">
+
+    <p class="card" style="text-align:center"><a href="./">▶ 全角・半角・かな を使う</a></p>
+
+    <article class="card content" id="howto">
+      <h2>全角・半角・かな変換の使い方</h2>
+      <ol>
+        <li>文章を貼る（ファイルを開く・ドロップも可）</li>
+        <li>「変換のしかた」を選ぶ（既定は、英数字を半角、カナを全角）</li>
+        <li>結果と、変えた字の内訳を確かめる</li>
+        <li>コピーするか、ファイルに保存する</li>
+      </ol>
+    </article>
+
+    <article class="card content" id="rules">
+      <h2>全角・半角の対応表</h2>
+      <p>1 対 1 で戻せる字だけを変えます。半角カナの濁点は前の字と 1 文字に合わせます（ｶﾞ→ガ、ﾊﾟ→パ、ｳﾞ→ヴ）。</p>
+      <details>
+        <summary>対応表</summary>
+        <table class="plain-table">
+          <thead><tr><th>種類</th><th>全角</th><th>半角</th></tr></thead>
+          <tbody>
+            <tr><td>英数字・記号</td><td>U+FF01〜U+FF5E（！〜～）</td><td>U+0021〜U+007E（! 〜 ~）</td></tr>
+            <tr><td>空白</td><td>U+3000</td><td>U+0020</td></tr>
+            <tr><td>カタカナ</td><td>ア〜ン、ァ〜ッ、ー、ヲ</td><td>U+FF66〜U+FF9D</td></tr>
+            <tr><td>濁点つき</td><td>ガ〜ボ、パ〜ポ、ヴ、ヷ、ヺ</td><td>2 文字（ｶﾞ など）</td></tr>
+            <tr><td>記号（カナの区画）</td><td>。「」、・゛゜</td><td>｡｢｣､･ﾞﾟ</td></tr>
+          </tbody>
+        </table>
+        <ul>
+          <li>半角の字が無いもの（ヰ ヱ ヮ ヵ ヶ ヸ ヹ）は変えずに残し、数を出します。別の字（ヰ→ｲ など）にはしません</li>
+          <li>前の字と合わせられない ﾞ ﾟ は ゛ ゜ にします</li>
+          <li>範囲の外の ￥（U+FFE5）・￣・〜（波ダッシュ U+301C）は変えません</li>
+          <li>ひらがな⇔カタカナ: ぁ〜ゖ ⇔ ァ〜ヶ、ゝゞ ⇔ ヽヾ。ヷ〜ヺはひらがなが無いので残します</li>
+        </ul>
+      </details>
+    </article>
+
+    <article class="card content" id="nfkc">
+      <h2>Unicode NFKC だけで変換しない理由</h2>
+      <p>NFKC（Unicode の互換正規化）でも全角英数は半角に、半角カナは全角になりますが、ほかの字も変わるため、このツールは自前の対応表を使います。</p>
+      <details>
+        <summary>NFKC で起きること</summary>
+        <ul>
+          <li>①→1、㈱→(株)、㌔→キロ、™→TM、½→1⁄2 のように、全角半角と関係ない字も変わる</li>
+          <li>単独の ﾞ は結合用の濁点（U+3099）になり、前の字に重なって見える。゛（U+309B）は空白＋U+3099 になる</li>
+          <li>￥ は ¥（U+00A5）になり、半角の \ にはならない</li>
+          <li>半角にする・カタカナをひらがなにする向きは無い</li>
+        </ul>
+        <p>根拠: Unicode Standard Annex #15（Unicode Normalization Forms）と、Unicode 文字データベース（UnicodeData.txt）の分解の指定（U+FF9E は &lt;narrow&gt; 3099）。NFKC もかけたいときは、くわしい設定で選べます。</p>
+      </details>
+    </article>
+
+    <article class="card content" id="faq">
+      <h2>よくある質問</h2>
+      <dl class="faq">
+        <dt>半角カナを全角にすると濁点が 2 文字に分かれます</dt>
+        <dd>このツールは ｶﾞ を ガ の 1 文字に合わせます。濁点を付けられない字（ｱﾞ など）の濁点だけ、全角の ゛ にします。</dd>
+        <dt>ひらがなをカタカナに変換できますか？</dt>
+        <dd>はい。「変換のしかた」で「ひらがな → カタカナ」を選びます。反対の「カタカナ → ひらがな」では、半角カナもひらがなにします。</dd>
+        <dt>全角スペースを半角にできますか？</dt>
+        <dd>はい。「英数字・記号・空白は半角、カナは全角」を選ぶか、くわしい設定で空白を「半角に」します。続いた空白を 1 つにすることもできます。</dd>
+      </dl>
+    </article>
+
+    <article class="card content" id="notes">
+      <h2>ご利用上の注意・データの扱い</h2>
+      <ul>
+        <li>貼り付けた文章やファイルは、この端末のブラウザの中だけで処理し、外部には送信しません。文章は保存しません。</li>
+        <li>設定はこの端末のブラウザ（localStorage、キー <code>henkan_settings</code>）にだけ保存され、外部には送信されません。書き出し・読み込み・消去はツールの画面のボタンから。</li>
+        <li>結果は元の文章と見比べてから使ってください。<a href="../guide.html">データの出どころとライセンス</a>もあわせてどうぞ。</li>
+      </ul>
+      <p><a href="https://docs.google.com/forms/d/e/1FAIpQLSd8B90qh5lEIyr25iw1jOjdQjOyaPZ1_z2wMB4kH-EmEeJYWw/viewform?usp=pp_url&amp;entry.585564634=henkan" target="_blank" rel="noopener">ご要望・不具合の報告（Google フォーム）</a>：いただいた内容をもとに直します。お返事はしていません。</p>
+      <p>サイト全体の運営者情報・免責事項は<a href="../../about.html">こちら</a>、プライバシーポリシーは<a href="../../privacy-policy.html">こちら</a>です（すべてのツールで共通）。</p>
+    </article>
+
+    <article class="card content" id="changelog">
+      <h2>更新履歴</h2>
+      <ul>
+        <li><time datetime="2026-09-25">2026年9月25日</time> 公開</li>
+      </ul>
+    </article>
+
+  </main>
+
+  <footer class="app-footer">
+    <nav class="footer-nav" aria-label="フッターナビゲーション">
+      <ul>
+        <li><a href="../../">yorozu-craft トップ</a></li>
+        <li><a href="../">テキスト変換</a></li>
+        <li><a href="./">全角・半角・かな</a></li>
+        <li><a href="./guide.html" aria-current="page">使い方・よくある質問</a></li>
+        <li><a href="../../about.html">運営者情報</a></li>
+        <li><a href="../../privacy-policy.html">プライバシーポリシー</a></li>
+      </ul>
+    </nav>
+    <p>&copy; 2026 yorozu-craft. All rights reserved.</p>
+  </footer>
+
+  <!-- Cloudflare Web Analytics（Cookie を使わないアクセス解析） --><script type='module' src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "b79bf821e1fd4b6683866d493b1de426"}'></script><!-- End Cloudflare Web Analytics -->
+</body>
+</html>

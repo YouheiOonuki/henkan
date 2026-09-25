@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JSON 整形・検証ツール｜エラーの行と列を日本語で｜yorozu-craft</title>
+  <meta name="description" content="JSON の整形（インデント）・圧縮・構文チェック。誤りの行と列と理由を日本語で出します。大きな整数や 1.10 も書いたとおりに残し、配列は CSV にできます。入力は外部に送信しません。">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://yorozu-craft.com/henkan/json/">
+
+  <meta property="og:title" content="JSON 整形・検証ツール｜yorozu-craft">
+  <meta property="og:description" content="JSON の整形・圧縮・構文チェック。誤りの行と列を日本語で。大きな整数も丸めません。">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://yorozu-craft.com/henkan/json/">
+  <meta property="og:site_name" content="yorozu-craft">
+  <meta property="og:locale" content="ja_JP">
+  <meta property="og:image" content="https://yorozu-craft.com/henkan/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="theme-color" content="#8b4513" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#1c1814" media="(prefers-color-scheme: dark)">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "JSON 整形・検証ツール",
+    "description": "JSON の整形・圧縮・構文チェック。誤りの行と列と理由を日本語で出し、数と文字列は書いたとおりに残します。入力は外部に送信しません。",
+    "url": "https://yorozu-craft.com/henkan/json/",
+    "applicationCategory": "UtilitiesApplication",
+    "operatingSystem": "All",
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "JPY" },
+    "inLanguage": "ja"
+  }
+  </script>
+
+  <meta name="google-adsense-account" content="ca-pub-5375267956079717">
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5375267956079717"
+     crossorigin="anonymous"></script>
+
+  <link rel="icon" href="../favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="../apple-touch-icon.png">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body data-root="../">
+
+  <header class="app-header">
+    <h1>JSON 整形・検証</h1>
+    <p class="subtitle">JSON を整形・1 行に・CSV に。誤りは行と列を日本語で。入力は外部に送信しません。</p>
+  </header>
+
+  <main class="app-main">
+<!-- TOOL-BEGIN json -->
+    <form id="j-form" autocomplete="off" onsubmit="return false">
+      <fieldset class="card req">
+        <legend>JSON</legend>
+        <div class="field">
+          <div class="label-row"><label for="j-in">整える・確かめる JSON</label><button type="button" class="btn-sub" id="j-file">ファイルを開く</button></div>
+          <textarea id="j-in" class="io" rows="9" spellcheck="false" data-accept=".json,.txt,application/json,text/plain" placeholder='{"name": "山田", "id": 12345678901234567890}'></textarea>
+        </div>
+      </fieldset>
+
+      <section class="card result-card" id="j-result" tabindex="-1" aria-labelledby="j-h-result">
+        <h2 id="j-h-result">結果</h2>
+        <div aria-live="polite">
+          <p class="result-big" id="j-big">—</p>
+          <p class="result-sub" id="j-sub">JSON を入れると、正しいかどうかと整えた形が出ます。</p>
+        </div>
+        <div id="j-err"></div>
+        <ul class="notes" id="j-notes"></ul>
+        <div class="view-row">
+          <span class="seg" role="group" aria-label="出力の形">
+            <label><input type="radio" name="j-mode" value="pretty"> 整形</label>
+            <label><input type="radio" name="j-mode" value="min"> 1 行に詰める</label>
+            <label><input type="radio" name="j-mode" value="csv"> CSV にする</label>
+          </span>
+        </div>
+        <label for="j-out" class="small">出力</label>
+        <textarea id="j-out" class="io out" rows="9" spellcheck="false" readonly></textarea>
+        <div id="j-preview"></div>
+        <div class="btn-row">
+          <button type="button" class="btn-sub" id="j-copy">コピー</button>
+          <button type="button" class="btn-sub" id="j-save">ファイルに保存</button>
+        </div>
+        <p class="small" id="j-msg" aria-live="polite"></p>
+      </section>
+
+      <div class="opts">
+        <details class="card opt" id="j-opt">
+          <summary>整え方: <span class="opt-state">字下げ 2</span></summary>
+          <div class="select-row">
+            <div class="field">
+              <label for="j-indent">字下げ</label>
+              <select id="j-indent">
+                <option value="2">スペース 2 つ</option>
+                <option value="4">スペース 4 つ</option>
+                <option value="tab">タブ</option>
+              </select>
+            </div>
+          </div>
+          <label class="inline-check"><input type="checkbox" id="j-sort"> 名前（キー）を並べ替える（文字コードの順）</label>
+          <fieldset class="plain">
+            <legend>CSV にするとき</legend>
+            <label class="inline-check"><input type="checkbox" id="j-bom"> 保存するファイルに BOM を付ける（Excel で文字化けしないように）</label>
+            <label class="inline-check"><input type="checkbox" id="j-tab"> 区切りをタブにする</label>
+          </fieldset>
+          <p class="small">数と文字列は書いてあったとおりに出します（12345678901234567890 や 1.10 も変えません）。</p>
+        </details>
+      </div>
+    </form>
+<!-- TOOL-END -->
+
+    <details class="card opt no-print" id="file-box">
+      <summary>設定の保存・書き出し</summary>
+      <p class="small">整え方などの設定はこの端末のブラウザ（localStorage、キー <code>henkan_settings</code>）にだけ保存され、外部には送信されません。貼り付けた文章は保存しません。書き出し・読み込み・消去はこの画面のボタンから。</p>
+      <div class="btn-row">
+        <button type="button" class="btn backup-export">ファイルに書き出す</button>
+        <button type="button" class="btn backup-import">ファイルから読み込む</button>
+        <button type="button" class="btn btn-reset" data-reset-storage="henkan_">保存した内容をすべて消す（初期状態に戻す）</button>
+      </div>
+      <input type="file" accept=".json,application/json" hidden>
+      <p class="small backup-msg" aria-live="polite"></p>
+    </details>
+
+    <p class="small"><a href="./guide.html">使い方・よくある質問</a> ／ ほかの変換: <a href="../diff/">テキスト差分</a>・<a href="../csv/">CSV 整形</a>・<a href="../zenkaku/">全角・半角・かな</a> ／ <a href="../">通信しない 1 ファイル版</a></p>
+  </main>
+
+  <footer class="app-footer">
+    <nav class="footer-nav" aria-label="フッターナビゲーション">
+      <ul>
+        <li><a href="../../">yorozu-craft トップ</a></li>
+        <li><a href="../">テキスト変換</a></li>
+        <li><a href="./" aria-current="page">JSON 整形</a></li>
+        <li><a href="./guide.html">使い方・よくある質問</a></li>
+        <li><a href="../../about.html">運営者情報</a></li>
+        <li><a href="../../privacy-policy.html">プライバシーポリシー</a></li>
+      </ul>
+    </nav>
+    <p>&copy; 2026 yorozu-craft. All rights reserved.</p>
+  </footer>
+
+  <script src="../lib/kana.js"></script>
+  <script src="../lib/diff.js"></script>
+  <script src="../lib/json.js"></script>
+  <script src="../lib/csv.js"></script>
+  <script src="../lib/ops.js"></script>
+  <script src="../reset-storage.js"></script>
+  <script src="../app/common.js"></script>
+  <script src="../app/json.js"></script>
+  <script src="../app/boot.js"></script>
+  <!-- Cloudflare Web Analytics（Cookie を使わないアクセス解析） --><script type='module' src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "b79bf821e1fd4b6683866d493b1de426"}'></script><!-- End Cloudflare Web Analytics -->
+</body>
+</html>

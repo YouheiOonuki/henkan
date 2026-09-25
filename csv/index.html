@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CSV 整形・変換ツール｜区切りの自動判定・JSON 変換・Excel 用 BOM｜yorozu-craft</title>
+  <meta name="description" content="CSV の区切り（カンマ・タブなど）を自動で見分けて表で表示。RFC 4180 の形に整える・JSON に変換・Excel で文字化けしない BOM 付きで保存。Shift_JIS のファイルも読めます。入力は外部に送信しません。">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://yorozu-craft.com/henkan/csv/">
+
+  <meta property="og:title" content="CSV 整形・変換ツール｜yorozu-craft">
+  <meta property="og:description" content="CSV を表で確かめて整える・JSON に変換。Excel 用の BOM 付き保存、Shift_JIS も読めます。">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://yorozu-craft.com/henkan/csv/">
+  <meta property="og:site_name" content="yorozu-craft">
+  <meta property="og:locale" content="ja_JP">
+  <meta property="og:image" content="https://yorozu-craft.com/henkan/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="theme-color" content="#8b4513" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#1c1814" media="(prefers-color-scheme: dark)">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "CSV 整形・変換ツール",
+    "description": "CSV の区切りを自動で見分けて表で表示し、RFC 4180 の形に整える・JSON に変換します。入力は外部に送信しません。",
+    "url": "https://yorozu-craft.com/henkan/csv/",
+    "applicationCategory": "UtilitiesApplication",
+    "operatingSystem": "All",
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "JPY" },
+    "inLanguage": "ja"
+  }
+  </script>
+
+  <meta name="google-adsense-account" content="ca-pub-5375267956079717">
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5375267956079717"
+     crossorigin="anonymous"></script>
+
+  <link rel="icon" href="../favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="../apple-touch-icon.png">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body data-root="../">
+
+  <header class="app-header">
+    <h1>CSV 整形・変換</h1>
+    <p class="subtitle">CSV を表で確かめて、整える・JSON にする。入力は外部に送信しません。</p>
+  </header>
+
+  <main class="app-main">
+<!-- TOOL-BEGIN csv -->
+    <form id="c-form" autocomplete="off" onsubmit="return false">
+      <fieldset class="card req">
+        <legend>CSV</legend>
+        <div class="field">
+          <div class="label-row"><label for="c-in">整える・変換する CSV</label><button type="button" class="btn-sub" id="c-file">ファイルを開く</button></div>
+          <textarea id="c-in" class="io" rows="9" spellcheck="false" data-accept=".csv,.tsv,.txt,text/csv,text/plain" placeholder="名前,郵便番号&#10;山田,0010001"></textarea>
+        </div>
+      </fieldset>
+
+      <section class="card result-card" id="c-result" tabindex="-1" aria-labelledby="c-h-result">
+        <h2 id="c-h-result">結果</h2>
+        <div aria-live="polite">
+          <p class="result-big" id="c-big">—</p>
+          <p class="result-sub" id="c-sub">CSV を入れると、表の形と変換した結果が出ます。</p>
+        </div>
+        <ul class="notes" id="c-notes"></ul>
+        <div id="c-preview"></div>
+        <div class="view-row">
+          <span class="seg" role="group" aria-label="出力の形">
+            <label><input type="radio" name="c-mode" value="csv"> CSV に整える</label>
+            <label><input type="radio" name="c-mode" value="json"> JSON にする</label>
+          </span>
+        </div>
+        <label for="c-out" class="small">出力</label>
+        <textarea id="c-out" class="io out" rows="8" spellcheck="false" readonly></textarea>
+        <div class="btn-row">
+          <button type="button" class="btn-sub" id="c-copy">コピー</button>
+          <button type="button" class="btn-sub" id="c-save">ファイルに保存</button>
+        </div>
+        <p class="small" id="c-msg" aria-live="polite"></p>
+      </section>
+
+      <div class="opts">
+        <details class="card opt" id="c-opt">
+          <summary>読み方・書き方: <span class="opt-state">区切りは自動</span></summary>
+          <div class="select-row">
+            <div class="field">
+              <label for="c-delim">入力の区切り</label>
+              <select id="c-delim">
+                <option value="auto">自動で見分ける</option>
+                <option value=",">カンマ（,）</option>
+                <option value="tab">タブ</option>
+                <option value=";">セミコロン（;）</option>
+                <option value="|">縦棒（|）</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="c-outdelim">出力の区切り</label>
+              <select id="c-outdelim">
+                <option value=",">カンマ（,）</option>
+                <option value="tab">タブ</option>
+                <option value="same">入力と同じ</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="c-quote">「"」で囲む</label>
+              <select id="c-quote">
+                <option value="auto">必要なときだけ</option>
+                <option value="all">すべて</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="c-eol">改行</label>
+              <select id="c-eol">
+                <option value="crlf">CRLF（Windows・Excel）</option>
+                <option value="lf">LF</option>
+              </select>
+            </div>
+          </div>
+          <label class="inline-check"><input type="checkbox" id="c-bom"> 保存するファイルに BOM を付ける（Excel で文字化けしないように）</label>
+          <fieldset class="plain">
+            <legend>JSON にするとき</legend>
+            <label class="inline-check"><input type="checkbox" id="c-header"> 1 行目を名前（見出し）にする</label>
+            <label class="inline-check"><input type="checkbox" id="c-numbers"> 数字を数にする（0 で始まるものは文字のまま）</label>
+          </fieldset>
+        </details>
+      </div>
+    </form>
+<!-- TOOL-END -->
+
+    <details class="card opt no-print" id="file-box">
+      <summary>設定の保存・書き出し</summary>
+      <p class="small">整え方などの設定はこの端末のブラウザ（localStorage、キー <code>henkan_settings</code>）にだけ保存され、外部には送信されません。貼り付けた文章は保存しません。書き出し・読み込み・消去はこの画面のボタンから。</p>
+      <div class="btn-row">
+        <button type="button" class="btn backup-export">ファイルに書き出す</button>
+        <button type="button" class="btn backup-import">ファイルから読み込む</button>
+        <button type="button" class="btn btn-reset" data-reset-storage="henkan_">保存した内容をすべて消す（初期状態に戻す）</button>
+      </div>
+      <input type="file" accept=".json,application/json" hidden>
+      <p class="small backup-msg" aria-live="polite"></p>
+    </details>
+
+    <p class="small"><a href="./guide.html">使い方・よくある質問</a> ／ ほかの変換: <a href="../diff/">テキスト差分</a>・<a href="../json/">JSON 整形</a>・<a href="../zenkaku/">全角・半角・かな</a> ／ <a href="../">通信しない 1 ファイル版</a></p>
+  </main>
+
+  <footer class="app-footer">
+    <nav class="footer-nav" aria-label="フッターナビゲーション">
+      <ul>
+        <li><a href="../../">yorozu-craft トップ</a></li>
+        <li><a href="../">テキスト変換</a></li>
+        <li><a href="./" aria-current="page">CSV 整形</a></li>
+        <li><a href="./guide.html">使い方・よくある質問</a></li>
+        <li><a href="../../about.html">運営者情報</a></li>
+        <li><a href="../../privacy-policy.html">プライバシーポリシー</a></li>
+      </ul>
+    </nav>
+    <p>&copy; 2026 yorozu-craft. All rights reserved.</p>
+  </footer>
+
+  <script src="../lib/kana.js"></script>
+  <script src="../lib/diff.js"></script>
+  <script src="../lib/json.js"></script>
+  <script src="../lib/csv.js"></script>
+  <script src="../lib/ops.js"></script>
+  <script src="../reset-storage.js"></script>
+  <script src="../app/common.js"></script>
+  <script src="../app/csv.js"></script>
+  <script src="../app/boot.js"></script>
+  <!-- Cloudflare Web Analytics（Cookie を使わないアクセス解析） --><script type='module' src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "b79bf821e1fd4b6683866d493b1de426"}'></script><!-- End Cloudflare Web Analytics -->
+</body>
+</html>

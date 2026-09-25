@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>テキスト差分（比較）ツール｜行と文字の違いを色分け｜yorozu-craft</title>
+  <meta name="description" content="2つの文章の違いを行と文字の単位で色分け。空白・大文字小文字・全角半角（ｶﾞとガも）を無視して比べられます。数MBでも固まらず、入力は外部に送信しません。">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://yorozu-craft.com/henkan/diff/">
+
+  <meta property="og:title" content="テキスト差分（比較）ツール｜yorozu-craft">
+  <meta property="og:description" content="2つの文章の違いを行と文字の単位で色分け。全角半角を無視して比べられ、入力は外部に送信しません。">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://yorozu-craft.com/henkan/diff/">
+  <meta property="og:site_name" content="yorozu-craft">
+  <meta property="og:locale" content="ja_JP">
+  <meta property="og:image" content="https://yorozu-craft.com/henkan/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="theme-color" content="#8b4513" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#1c1814" media="(prefers-color-scheme: dark)">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "テキスト差分（比較）ツール",
+    "description": "2つの文章の違いを行と文字の単位で色分けします。空白・大文字小文字・全角半角を無視して比べられます。入力は外部に送信しません。",
+    "url": "https://yorozu-craft.com/henkan/diff/",
+    "applicationCategory": "UtilitiesApplication",
+    "operatingSystem": "All",
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "JPY" },
+    "inLanguage": "ja"
+  }
+  </script>
+
+  <meta name="google-adsense-account" content="ca-pub-5375267956079717">
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5375267956079717"
+     crossorigin="anonymous"></script>
+
+  <link rel="icon" href="../favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="../apple-touch-icon.png">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body data-root="../">
+
+  <header class="app-header">
+    <h1>テキスト差分（比較）</h1>
+    <p class="subtitle">2 つの文章の違いを行と文字で色分け。入力は外部に送信しません。</p>
+  </header>
+
+  <main class="app-main app-wide">
+<!-- TOOL-BEGIN diff -->
+    <form id="d-form" autocomplete="off" onsubmit="return false">
+      <fieldset class="card req">
+        <legend>比べる 2 つの文章</legend>
+        <div class="pair">
+          <div class="field">
+            <div class="label-row"><label for="d-a">元の文章（A）</label><button type="button" class="btn-sub" id="d-a-file">ファイルを開く</button></div>
+            <textarea id="d-a" class="io" rows="7" spellcheck="false" placeholder="ここに貼り付け（ファイルのドロップも可）"></textarea>
+          </div>
+          <div class="field">
+            <div class="label-row"><label for="d-b">新しい文章（B）</label><button type="button" class="btn-sub" id="d-b-file">ファイルを開く</button></div>
+            <textarea id="d-b" class="io" rows="7" spellcheck="false" placeholder="ここに貼り付け（ファイルのドロップも可）"></textarea>
+          </div>
+        </div>
+      </fieldset>
+
+      <section class="card result-card" id="d-result" tabindex="-1" aria-labelledby="d-h-result">
+        <h2 id="d-h-result">違い</h2>
+        <div aria-live="polite">
+          <p class="result-big" id="d-big">—</p>
+          <p class="result-sub" id="d-sub">A と B に文章を入れると出ます。</p>
+        </div>
+        <div class="view-row" id="d-view-row" hidden>
+          <span class="seg" role="group" aria-label="表示">
+            <label><input type="radio" name="d-view" value="split"> 左右に並べる</label>
+            <label><input type="radio" name="d-view" value="unified"> 1 列</label>
+          </span>
+          <label class="inline-check" id="d-all-label"><input type="checkbox" id="d-all"> 同じ行もすべて出す</label>
+        </div>
+        <div id="d-out" class="diff-out"></div>
+        <div class="btn-row" id="d-actions" hidden>
+          <button type="button" class="btn-sub" id="d-copy-unified">unified 形式でコピー</button>
+          <button type="button" class="btn-sub" id="d-swap">A と B を入れ替える</button>
+        </div>
+        <p class="small" id="d-msg" aria-live="polite"></p>
+      </section>
+
+      <div class="opts">
+        <details class="card opt" id="d-opt">
+          <summary>比べ方: <span class="opt-state">行単位</span></summary>
+          <fieldset class="plain">
+            <legend>単位</legend>
+            <label class="inline-check"><input type="radio" name="d-unit" value="line"> 行（行の中の違う字も色分け）</label>
+            <label class="inline-check"><input type="radio" name="d-unit" value="char"> 文字（改行の少ない文章に）</label>
+          </fieldset>
+          <fieldset class="plain">
+            <legend>同じとみなす違い</legend>
+            <label class="inline-check"><input type="checkbox" id="d-space"> 空白（全角スペース・タブを含む）</label>
+            <label class="inline-check"><input type="checkbox" id="d-case"> 英字の大文字・小文字</label>
+            <label class="inline-check"><input type="checkbox" id="d-width"> 全角・半角（ＡとA、ｶﾞとガ）</label>
+          </fieldset>
+          <p class="small">改行コード（CRLF と LF）と、最後の行の改行の有無は比べません（違うときは結果の下に書きます）。</p>
+        </details>
+      </div>
+    </form>
+<!-- TOOL-END -->
+
+    <details class="card opt no-print" id="file-box">
+      <summary>設定の保存・書き出し</summary>
+      <p class="small">比べ方などの設定はこの端末のブラウザ（localStorage、キー <code>henkan_settings</code>）にだけ保存され、外部には送信されません。貼り付けた文章は保存しません。書き出し・読み込み・消去はこの画面のボタンから。</p>
+      <div class="btn-row">
+        <button type="button" class="btn backup-export">ファイルに書き出す</button>
+        <button type="button" class="btn backup-import">ファイルから読み込む</button>
+        <button type="button" class="btn btn-reset" data-reset-storage="henkan_">保存した内容をすべて消す（初期状態に戻す）</button>
+      </div>
+      <input type="file" accept=".json,application/json" hidden>
+      <p class="small backup-msg" aria-live="polite"></p>
+    </details>
+
+    <p class="small"><a href="./guide.html">使い方・よくある質問</a> ／ ほかの変換: <a href="../json/">JSON 整形</a>・<a href="../csv/">CSV 整形</a>・<a href="../zenkaku/">全角・半角・かな</a> ／ <a href="../">通信しない 1 ファイル版</a></p>
+  </main>
+
+  <footer class="app-footer">
+    <nav class="footer-nav" aria-label="フッターナビゲーション">
+      <ul>
+        <li><a href="../../">yorozu-craft トップ</a></li>
+        <li><a href="../">テキスト変換</a></li>
+        <li><a href="./" aria-current="page">テキスト差分</a></li>
+        <li><a href="./guide.html">使い方・よくある質問</a></li>
+        <li><a href="../../about.html">運営者情報</a></li>
+        <li><a href="../../privacy-policy.html">プライバシーポリシー</a></li>
+      </ul>
+    </nav>
+    <p>&copy; 2026 yorozu-craft. All rights reserved.</p>
+  </footer>
+
+  <script src="../lib/kana.js"></script>
+  <script src="../lib/diff.js"></script>
+  <script src="../lib/json.js"></script>
+  <script src="../lib/csv.js"></script>
+  <script src="../lib/ops.js"></script>
+  <script src="../reset-storage.js"></script>
+  <script src="../app/common.js"></script>
+  <script src="../app/diff.js"></script>
+  <script src="../app/boot.js"></script>
+  <!-- Cloudflare Web Analytics（Cookie を使わないアクセス解析） --><script type='module' src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "b79bf821e1fd4b6683866d493b1de426"}'></script><!-- End Cloudflare Web Analytics -->
+</body>
+</html>
