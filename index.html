@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>テキスト変換ツール（差分・JSON整形・CSV整形・全角半角）｜yorozu-craft</title>
-  <meta name="description" content="テキスト差分、JSON 整形・検証、CSV 整形・JSON 変換、全角・半角・かな変換の 4 つ。ブラウザの中だけで動き、入力は外部に送信しません。通信しない 1 ファイル版（henkan.html）もダウンロードできます。">
+  <meta name="description" content="テキスト差分、JSON 整形・検証、CSV 整形・JSON 変換、全角・半角・かな変換と、PDF の結合・分割・回転。ブラウザの中だけで動き、入力は外部に送信しません。通信しない 1 ファイル版（henkan.html）もダウンロードできます。">
   <meta name="robots" content="index, follow">
   <link rel="canonical" href="https://yorozu-craft.com/henkan/">
 
@@ -48,7 +48,7 @@
 
   <header class="app-header">
     <h1>テキスト変換</h1>
-    <p class="subtitle">差分・JSON・CSV・全角半角。入力は外部に送信しません。</p>
+    <p class="subtitle">差分・JSON・CSV・全角半角・PDF。入力は外部に送信しません。</p>
   </header>
 
   <main class="app-main">
@@ -57,6 +57,7 @@
       <li><a href="./json/"><strong>JSON 整形・検証</strong><span>誤りの行と列を日本語で。大きな整数も丸めない。配列は CSV に</span></a></li>
       <li><a href="./csv/"><strong>CSV 整形・変換</strong><span>区切りを自動で見分けて表に。JSON にする、Excel 用に BOM 付きで保存</span></a></li>
       <li><a href="./zenkaku/"><strong>全角・半角・かな変換</strong><span>ｶﾞ→ガも 1 文字に。ひらがな⇔カタカナ、空白と改行の整理</span></a></li>
+      <li><a href="./pdf/"><strong>PDF 結合・分割・回転</strong><span>ファイルをアップロードせずに結合・分割・90° 回転。ページの削除と並べ替えも</span></a></li>
     </ul>
 
     <section class="card content" aria-labelledby="h-offline">
@@ -66,12 +67,12 @@
         <a class="btn" href="./henkan.html" download="henkan.html">ダウンロード（henkan.html・約 190KB）</a>
         <a class="btn-sub" href="./henkan.html" target="_blank" rel="noopener">ブラウザで開く</a>
       </div>
-      <p class="small">広告・アクセス解析は入っていません。ブラウザの仕組み（Content-Security-Policy）で外部への通信も禁止しています。</p>
+      <p class="small">広告・アクセス解析は入っていません。ブラウザの仕組み（Content-Security-Policy）で外部への通信も禁止しています。PDF 結合・分割・回転は大きさの都合で入れていません。</p>
     </section>
 
     <section class="card content" aria-labelledby="h-data">
       <h2 id="h-data">入力の扱い</h2>
-      <p>貼り付けた文章やファイルは、この端末のブラウザの中だけで処理し、外部のサーバーには送信しません。数 MB の入力は画面とは別の処理（Web Worker）で計算するので、計算中も画面は固まりません。</p>
+      <p>貼り付けた文章や PDF などのファイルは、この端末のブラウザの中だけで処理し、外部のサーバーには送信しません。数 MB の入力は画面とは別の処理（Web Worker）で計算するので、計算中も画面は固まりません。</p>
     </section>
 
     <p class="small"><a href="./guide.html">データの出どころ・ライセンス・更新履歴</a></p>

@@ -10,7 +10,7 @@
 'use strict';
 
 const CACHE_PREFIX = 'henkan-';
-const CACHE_NAME   = `${CACHE_PREFIX}v1`; // キャッシュする中身の構成を変えたら上げる
+const CACHE_NAME   = `${CACHE_PREFIX}v2`; // キャッシュする中身の構成を変えたら上げる
 
 /** 初回インストール時に取得しておくファイル */
 const PRECACHE_URLS = [
@@ -25,6 +25,9 @@ const PRECACHE_URLS = [
   './csv/guide.html',
   './zenkaku/',
   './zenkaku/guide.html',
+  './pdf/',
+  './pdf/guide.html',
+  './pdf/pdf.css',
   './henkan.html',
   './style.css',
   './reset-storage.js',
@@ -39,6 +42,10 @@ const PRECACHE_URLS = [
   './app/json.js',
   './app/csv.js',
   './app/zenkaku.js',
+  './lib/pdf.js',
+  './lib/pdf-worker.js',
+  './app/pdf.js',
+  // vendor/pdf-lib/pdf-lib.min.js（525KB）は先に取らない。PDF のページで最初に使ったときに下の fetch がキャッシュする
   './app/boot.js',
   './manifest.webmanifest',
   './favicon.svg',

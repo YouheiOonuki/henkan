@@ -6,13 +6,13 @@ const path = require('node:path');
 const ROOT = path.join(__dirname, '..');
 const read = (p) => fs.readFileSync(path.join(ROOT, p), 'utf8');
 const TOOLS = ['diff', 'json', 'csv', 'zenkaku'];
-const PAGES = ['index.html', 'guide.html'].concat(...TOOLS.map((t) => [t + '/index.html', t + '/guide.html']));
+const PAGES = ['index.html', 'guide.html'].concat(...TOOLS.concat(['pdf']).map((t) => [t + '/index.html', t + '/guide.html']));   // pdf は 1 ファイル版に入れない（tests/pdf.test.js）
 
 test('constants: 出典に url と確認日がある', () => {
   const C = require('../constants.js');
   assert.match(C.CHECKED, /^\d{4}-\d{2}-\d{2}$/);
   for (const [k, s] of Object.entries(C.SOURCES)) {
-    assert.ok(s.label && /^https:\/\//.test(s.url) && s.checked === C.CHECKED, k);
+    assert.ok(s.label && /^https:\/\//.test(s.url) && (s.checked === C.CHECKED || s.checked === C.CHECKED_PDF) && s.checked >= C.CHECKED, k);
   }
 });
 

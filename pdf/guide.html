@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PDF 結合・分割・回転の使い方｜アップロードしないしくみ｜yorozu-craft</title>
+  <meta name="description" content="PDF 結合・分割・回転ツールの使い方。ファイルをサーバーに送らないしくみ、分割のページの書き方（1-3, 5）、パスワード付き PDF・しおり・フォームの扱い。">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://yorozu-craft.com/henkan/pdf/guide.html">
+
+  <meta property="og:title" content="PDF 結合・分割・回転の使い方｜アップロードしないしくみ">
+  <meta property="og:description" content="PDF 結合・分割・回転ツールの使い方。ファイルをサーバーに送らないしくみ、分割のページの書き方、パスワード付き PDF の扱い。">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://yorozu-craft.com/henkan/pdf/guide.html">
+  <meta property="og:site_name" content="yorozu-craft">
+  <meta property="og:locale" content="ja_JP">
+  <meta property="og:image" content="https://yorozu-craft.com/henkan/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+
+  <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "パスワード付きの PDF を結合できますか？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "できません。開くときのパスワードも、編集の制限だけのものも、暗号化された PDF は読めないと表示します。PDF を作ったソフトなどで保護を外して保存し直してから入れてください。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "PDF の結合でしおり（目次）は残りますか？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "残りません。ページを新しい PDF に写すしくみなので、しおりと入力フォームの設定は持ち込みません。フォームの入力欄は、見た目は残っても入力できなくなることがあります。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "スマホでも PDF を結合できますか？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "できます。ファイルを選ぶボタンから入れ、ファイルの順番は ↑↓ のボタンで並べ替えます。大きなファイルは端末のメモリが足りずに止まることがあるので、合計 100MB を目安にしてください。"
+      }
+    }
+  ]
+}
+  </script>
+
+  <meta name="google-adsense-account" content="ca-pub-5375267956079717">
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5375267956079717"
+     crossorigin="anonymous"></script>
+
+  <link rel="icon" href="../favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="../apple-touch-icon.png">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+
+  <header class="app-header">
+    <h1>PDF 結合・分割・回転の使い方</h1>
+    <p class="subtitle">使い方・しくみ・よくある質問・ご利用上の注意</p>
+  </header>
+
+  <main class="app-main">
+
+    <p class="card" style="text-align:center"><a href="./">▶ PDF 結合・分割・回転 を使う</a></p>
+
+    <article class="card content" id="howto">
+      <h2>PDF 結合・分割・回転の使い方</h2>
+      <ol>
+        <li>「結合」「分割」「回転・ページ整理」から選ぶ</li>
+        <li>PDF を選ぶ（ドロップも可。複数を一度に）</li>
+        <li>順番・ページ・向きを決める</li>
+        <li>保存のボタンを押す</li>
+      </ol>
+      <p>結合はファイルの順に、ページ整理はページの順に並べ替えます。ページの縮小画像は出さず、向きと縦横の形だけを出します。</p>
+    </article>
+
+    <article class="card content" id="noupload">
+      <h2>PDF をアップロードしないしくみ</h2>
+      <p>PDF の読み込み・結合・分割・回転は、この端末のブラウザの中（Web Worker）で行います。ファイルの中身をサーバーに送る処理はありません。</p>
+      <details>
+        <summary>使っているもの</summary>
+        <ul>
+          <li>PDF の読み書き: pdf-lib 1.17.1（MIT License）。このサイトに置いた写しを、最初にファイルを選んだときに読み込みます</li>
+          <li>回転: ページの Rotate（時計回り、90 の倍数）を書き換えます。中身の画像や文字は作り直しません</li>
+          <li>新しい PDF に写すので、元の文書情報（タイトル・作成者など）・しおり・フォームの設定は持ち込みません。文書情報は「くわしい設定」で残せます</li>
+        </ul>
+        <p>根拠: ISO 32000-1:2008（PDF 1.7）7.7.3.3 Table 30（Rotate）、7.5.5 Table 15（Encrypt）、7.7.2 Table 28（Outlines・AcroForm）。最終確認日 2026-10-01。</p>
+      </details>
+    </article>
+
+    <article class="card content" id="ranges">
+      <h2>PDF の分割のページの書き方</h2>
+      <p>「1-3, 5」と書くと、1〜3 ページと 5 ページの 2 つのファイルに分けます。「5-」は 5 ページから最後まで、「3-1」は逆の順です。</p>
+      <details>
+        <summary>分け方の種類</summary>
+        <ul>
+          <li>範囲ごとに別のファイル: カンマで区切った範囲ごとに 1 つ</li>
+          <li>指定したページを 1 つのファイルに: 書いたページを書いた順につなげる</li>
+          <li>1 ページずつ・決まったページ数ずつ: 最後のファイルは残りのページ</li>
+        </ul>
+        <p>全角の数字・「〜」「、」も読めます。複数のファイルを入れたときは、つなげた順のページ番号で数えます。2 つ以上のファイルは ZIP にまとめて保存できます。</p>
+      </details>
+    </article>
+
+    <article class="card content" id="faq">
+      <h2>よくある質問</h2>
+      <dl class="faq">
+        <dt>パスワード付きの PDF を結合できますか？</dt>
+        <dd>できません。開くときのパスワードも、編集の制限だけのものも、暗号化された PDF は読めないと表示します。PDF を作ったソフトなどで保護を外して保存し直してから入れてください。</dd>
+        <dt>PDF の結合でしおり（目次）は残りますか？</dt>
+        <dd>残りません。ページを新しい PDF に写すしくみなので、しおりと入力フォームの設定は持ち込みません。フォームの入力欄は、見た目は残っても入力できなくなることがあります。</dd>
+        <dt>スマホでも PDF を結合できますか？</dt>
+        <dd>できます。ファイルを選ぶボタンから入れ、ファイルの順番は ↑↓ のボタンで並べ替えます。大きなファイルは端末のメモリが足りずに止まることがあるので、合計 100MB を目安にしてください。</dd>
+      </dl>
+    </article>
+
+    <article class="card content" id="notes">
+      <h2>ご利用上の注意・データの扱い</h2>
+      <ul>
+        <li>選んだ PDF はこの端末のブラウザの中だけで処理し、外部には送信しません。保存もしないので、ページを閉じると消えます。</li>
+        <li>ページには広告とアクセス解析（Cloudflare Web Analytics）のスクリプトがありますが、PDF の中身は渡しません。</li>
+        <li>結果は元の PDF と見比べてから使ってください。<a href="../guide.html">データの出どころとライセンス</a>もあわせてどうぞ。</li>
+      </ul>
+      <p><a href="https://docs.google.com/forms/d/e/1FAIpQLSd8B90qh5lEIyr25iw1jOjdQjOyaPZ1_z2wMB4kH-EmEeJYWw/viewform?usp=pp_url&amp;entry.585564634=henkan" target="_blank" rel="noopener">ご要望・不具合の報告（Google フォーム）</a>：いただいた内容をもとに直します。お返事はしていません。</p>
+      <p>サイト全体の運営者情報・免責事項は<a href="../../about.html">こちら</a>、プライバシーポリシーは<a href="../../privacy-policy.html">こちら</a>です（すべてのツールで共通）。</p>
+    </article>
+
+    <article class="card content" id="changelog">
+      <h2>更新履歴</h2>
+      <ul>
+        <li><time datetime="2026-10-01">2026年10月1日</time> 公開</li>
+      </ul>
+    </article>
+
+  </main>
+
+  <footer class="app-footer">
+    <nav class="footer-nav" aria-label="フッターナビゲーション">
+      <ul>
+        <li><a href="../../">yorozu-craft トップ</a></li>
+        <li><a href="../">テキスト変換</a></li>
+        <li><a href="./">PDF 結合・分割・回転</a></li>
+        <li><a href="./guide.html" aria-current="page">使い方・よくある質問</a></li>
+        <li><a href="../../about.html">運営者情報</a></li>
+        <li><a href="../../privacy-policy.html">プライバシーポリシー</a></li>
+      </ul>
+    </nav>
+    <p>&copy; 2026 yorozu-craft. All rights reserved.</p>
+  </footer>
+
+  <!-- Cloudflare Web Analytics（Cookie を使わないアクセス解析） --><script type='module' src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "b79bf821e1fd4b6683866d493b1de426"}'></script><!-- End Cloudflare Web Analytics -->
+</body>
+</html>

@@ -2,8 +2,8 @@
 
 公開 URL: **https://yorozu-craft.com/henkan/**
 
-テキスト差分、JSON 整形・検証、CSV 整形・JSON 変換、全角・半角・かな変換の 4 つの道具。ブラウザの中だけで動き、入力は外部に送信しない。4 つをまとめた**通信しない 1 ファイル版 `henkan.html`** もある。
-yorozu-craft のツールの1つです（共通ルールは [youheioonuki.github.io の README](https://github.com/YouheiOonuki/youheioonuki.github.io) を参照）。企画は yorozu-plans の `docs/45_テキスト変換.md`（台帳 K27）。
+テキスト差分、JSON 整形・検証、CSV 整形・JSON 変換、全角・半角・かな変換の 4 つの道具と、PDF 結合・分割・回転（`/henkan/pdf/`）。ブラウザの中だけで動き、入力は外部に送信しない。4 つをまとめた**通信しない 1 ファイル版 `henkan.html`** もある（PDF は入れない。下の「PDF」）。
+yorozu-craft のツールの1つです（共通ルールは [youheioonuki.github.io の README](https://github.com/YouheiOonuki/youheioonuki.github.io) を参照）。企画は yorozu-plans の `docs/45_テキスト変換.md`（台帳 K27）と `docs/46_PDF結合分割.md`（台帳 K28）。
 
 ## ページ
 
@@ -14,6 +14,7 @@ yorozu-craft のツールの1つです（共通ルールは [youheioonuki.github
 | `/henkan/json/` | JSON 整形・検証（誤りの行・列と理由を日本語で、1 行に詰める、名前の並べ替え、CSV に） | あり |
 | `/henkan/csv/` | CSV 整形・変換（区切りの自動判定、表の見本、RFC 4180 の形に整える、JSON に、BOM 付き保存、Shift_JIS 読み込み） | あり |
 | `/henkan/zenkaku/` | 全角・半角・かな変換（英数・記号・空白・カナの全角半角、ひらがな⇔カタカナ、空白と改行の整理、NFKC は任意） | あり |
+| `/henkan/pdf/` | PDF 結合・分割・回転（ファイルの並べ替え、範囲・1 ページずつ・N ページずつの分割、ZIP にまとめて保存、90° 回転・ページの削除と並べ替え）。1 ファイル版には入れない | あり |
 | `*/guide.html` | 使い方・しくみ・よくある質問（`/henkan/guide.html` は出どころとライセンス） | あり |
 | `henkan.html` | 1 ファイル版（タブで 4 つ）。`noindex`・sitemap に載せない | **なし**（CSP で通信も禁止） |
 
@@ -46,6 +47,19 @@ yorozu-craft のツールの1つです（共通ルールは [youheioonuki.github
 - 文字コード: BOM（UTF-8・UTF-16）→ UTF-8（fatal）→ Shift_JIS（WHATWG Encoding の shift_jis）
 - JSON にする: 1 行目を名前（空は「列N」、重なりは「名前_2」）。「数字を数に」は 0 で始まらない整数・小数で、安全な範囲のものだけ
 
+### PDF（`lib/pdf.js`・`lib/pdf-worker.js`・`app/pdf.js`・`pdf/pdf.css`）
+
+- PDF の読み書きは **pdf-lib 1.17.1**（`vendor/pdf-lib/pdf-lib.min.js`。npm の `dist/pdf-lib.min.js` を手を加えずに置いた。SHA-256 `0f9a5cad07941f0826586c94e089d89b918c46e5c17cf2d5a3c6f666e3bc694f`、`tests/pdf.test.js` が確かめる）。版を上げるときはファイルを差し替え、テストのハッシュと下のライセンスの表を直す
+- **遅延読み込み**: ページは `lib/pdf.js`（範囲の読み取り・ZIP など、8KB ほど）だけを読む。最初のファイルを選んだときに Worker（`lib/pdf-worker.js`）を作り、その中で `importScripts` で pdf-lib を読む。Worker が使えなければ画面側に `<script>` で読む
+- **1 ファイル版 `henkan.html` には入れない**（ROADMAP 7.10.2。pdf-lib だけで 525KB）。`build.mjs` は `pdf/` を読まず、`pdf/pdf.css` は `style.css` と分けてある（`style.css` は 1 ファイル版に埋め込まれる）。`tests/pdf.test.js` が henkan.html に pdf-lib が無いことを確かめる
+- 作る PDF はいつも新しい文書（`PDFDocument.create({ updateMetadata: false })`）にページを `copyPages` で写す。元の文書情報・しおり（Outlines）・フォーム（AcroForm）は持ち込まない。Producer・Creator・作成日も書かない。文書情報（タイトル・作成者・件名・キーワード）は「くわしい設定」で最初のファイルから写せる
+- 回転はページの `/Rotate` に足す（ISO 32000-1 Table 30: 時計回り・90 の倍数・ページの木から受け継ぐ）。中身は作り直さない
+- 暗号化（trailer の `/Encrypt`。開くパスワードも、編集の制限だけのものも）は pdf-lib では正しく書き出せないので、読まずに知らせる（`ignoreEncryption: true` で開いて `isEncrypted` を見る）
+- 大きさの目安: 合計 100MB を超えたら知らせる（止めない）。pdf-lib はファイル全体をメモリに読み、書き出しでもう 1 つ作る。84MB × 2 の結合は Playwright の Chromium（PC）で読み込み約 1.4 秒・結合と保存約 5.4 秒（2026-10-01）
+- ページの縮小画像は出さない（pdf.js が要り、さらに 1MB 以上）。代わりに、ページの縦横と向きを形と矢印で出す
+- 何も保存しない（localStorage を使わない）ので、K123 の消すボタンは置かない
+- ZIP は自前（無圧縮、名前は UTF-8 のフラグ。PKWARE の APPNOTE の形）
+
 ### 全角・半角・かな（`lib/kana.js`）の対応表
 
 | 種類 | 全角 | 半角 |
@@ -62,7 +76,7 @@ yorozu-craft のツールの1つです（共通ルールは [youheioonuki.github
 
 ## データの出どころとライセンス
 
-外部のデータ・ライブラリは使っていない（すべて自前のコード）。規則のもとにした仕様（`constants.js` の `SOURCES`、`CHECKED = '2026-09-25'`）:
+外部のライブラリは PDF のページの pdf-lib だけ（ほかはすべて自前のコード）。規則のもとにした仕様（`constants.js` の `SOURCES`、`CHECKED = '2026-09-25'`、PDF の分は `CHECKED_PDF = '2026-10-01'`）:
 
 | 仕様 | URL | 使った所 |
 |------|-----|---------|
@@ -73,15 +87,24 @@ yorozu-craft のツールの1つです（共通ルールは [youheioonuki.github
 | WHATWG Encoding Standard | https://encoding.spec.whatwg.org/ | Shift_JIS の読み込み |
 | Microsoft Learn（Power Query Text/CSV、Partner Center の CSV エンコード） | constants.js に URL | BOM の説明 |
 | Myers (1986) | 論文 | 差分のアルゴリズム |
+| ISO 32000-1:2008（PDF 1.7、Adobe が公開している写し） | https://archive.org/details/pdf320002008 | 7.7.3.3 Table 30（Rotate）、7.5.5 Table 15（Encrypt）、7.7.2 Table 28（Outlines・AcroForm） |
+
+### 同梱しているライブラリ（PDF のページだけが読む）
+
+| ライブラリ | 版 | ライセンス | 置き場所 |
+|------|------|------|------|
+| pdf-lib（Andrew Dillon） | 1.17.1（npm、https://www.npmjs.com/package/pdf-lib/v/1.17.1） | MIT | `vendor/pdf-lib/pdf-lib.min.js`、全文は `vendor/pdf-lib/LICENSE.md` |
+| pdf-lib.min.js の中に入っているもの: @pdf-lib/standard-fonts 1.0.0・@pdf-lib/upng 1.0.1・pako 1.0.11・tslib 1.11.1 | 版は pdf-lib 1.17.1 の yarn.lock | MIT・MIT・MIT（一部 Zlib）・Apache License 2.0 | 全文は `vendor/pdf-lib/THIRD-PARTY-LICENSES.md` |
 
 Microsoft Excel は Microsoft の商標。このツールは Microsoft とは関係ない（csv/guide.html にも 1 文）。
 
-コードは MIT License（`LICENSE`）。
+コードは MIT License（`LICENSE`）。`vendor/` の中はそれぞれのライセンス（上の表）。
 
 ## 保存
 
 - `localStorage` のキーは `henkan_settings` だけ（4 つの道具の設定。貼った文章は保存しない）。各ページの「設定の保存・書き出し」に、書き出し・読み込み（`henkan-backup-YYYYMMDD.json`）と「保存した内容をすべて消す（初期状態に戻す）」（`data-reset-storage="henkan_"`、`reset-storage.js`。K123 の共通部品と同じもの）
-- オフライン対応: `sw.js`（キャッシュ名 `henkan-v1`、`./` 配下だけ）
+- PDF のページ（`/henkan/pdf/`）は何も保存しない。選んだ PDF はページを閉じると消える
+- オフライン対応: `sw.js`（キャッシュ名 `henkan-v2`、`./` 配下だけ）。pdf-lib は先に取らず、最初に使ったときにキャッシュする
 
 ## ビルドとテスト
 
@@ -93,7 +116,7 @@ node --test tests/*.test.js
 - `build.mjs` は `diff/ json/ csv/ zenkaku/` の `index.html` から `<!-- TOOL-BEGIN … -->`〜`<!-- TOOL-END -->` を取り出し、`style.css`・`lib/*.js`・`app/*.js`・`reset-storage.js` を埋め込む。Worker は `lib/*.js` と `lib/worker.js` をつなげた `<script type="text/plain">` を Blob にする。CSP `default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; worker-src blob:; connect-src 'none'`
 - ツールのブロックの中に相対リンクを書かない（1 ファイル版で切れる。ビルドが止まる）
 - **`lib/`・`app/`・`style.css`・ツールのページを直したら `node build.mjs` して `henkan.html` も一緒にコミットする**（`tests/site.test.js` が一致を確かめる）。サイズが ±15KB 変わったら `index.html` の「約 ○KB」も直す
-- テスト: 差分（乱数 2000 組で最短＝最長共通部分列の長さと一致・B に戻せる、GNU diff -u との一致、端の場合、無視の選択、6 万行 3 秒以内、全部違う 2 万行、近似で止まる）、JSON（JSON.parse と同じ受け入れ・拒否、誤りの行・列、数の保持、整形、表）、CSV（RFC 4180 の例、崩れた CSV、区切りの判定、往復 500 表、JSON、Shift_JIS）、全角半角（濁点、往復、対応表の外、ひらがな、整理、NFKC）、サイト（1 ファイル版の一致・通信なし、ページのリンク、sitemap・sw.js）、消すボタン
+- テスト: 差分（乱数 2000 組で最短＝最長共通部分列の長さと一致・B に戻せる、GNU diff -u との一致、端の場合、無視の選択、6 万行 3 秒以内、全部違う 2 万行、近似で止まる）、JSON（JSON.parse と同じ受け入れ・拒否、誤りの行・列、数の保持、整形、表）、CSV（RFC 4180 の例、崩れた CSV、区切りの判定、往復 500 表、JSON、Shift_JIS）、全角半角（濁点、往復、対応表の外、ひらがな、整理、NFKC）、サイト（1 ファイル版の一致・通信なし、ページのリンク、sitemap・sw.js）、消すボタン、PDF（範囲の書き方、結合の順、分割、回転〔受け継いだ Rotate も〕、文書情報を残さない、しおり・フォーム、暗号化・壊れた PDF、ZIP、pdf-lib のハッシュ、1 ファイル版に pdf-lib が無いこと、遅延読み込み）
 
 ## 保守
 
@@ -101,5 +124,6 @@ node --test tests/*.test.js
 |------|------------|---------|
 | 確認日から 12 か月（2027-09） | RFC 4180・8259 の改訂（Obsoleted by）、Unicode の新しい版で半角・全角の区画に変更がないか | `constants.js`、`lib/*.js`、`guide.html` |
 | 問い合わせのとき | Excel の CSV の読み方（BOM）の資料 | `csv/guide.html` |
+| 確認日から 12 か月（2027-10） | pdf-lib の新しい版・セキュリティの知らせ（npm・GitHub の Hopding/pdf-lib）。上げるならハッシュとライセンスの表も | `vendor/pdf-lib/`、`tests/pdf.test.js`、`constants.js` |
 
 直したら各 `guide.html` の「更新履歴」に 1 行足す。
