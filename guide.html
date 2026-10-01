@@ -57,7 +57,7 @@
 
     <article class="card content" id="sources">
       <h2>データの出どころとライセンス</h2>
-      <p>変換の規則は、次の公開の仕様から作りました（最終確認日 2026-09-25）。外部のデータやライブラリは使っていません。</p>
+      <p>変換の規則は、次の公開の仕様から作りました（最終確認日 2026-09-25。PDF は 2026-10-01）。外部のライブラリは PDF のページの pdf-lib だけです。</p>
       <details>
         <summary>仕様と確かめたこと</summary>
         <ul>
@@ -66,9 +66,11 @@
           <li>Unicode Standard Annex #15（Revision 58、Unicode 18.0.0）と UnicodeData.txt（18.0.0）: 全角・半角の分解の指定 — <a href="https://www.unicode.org/reports/tr15/">unicode.org/reports/tr15</a></li>
           <li>WHATWG Encoding Standard: Shift_JIS の読み方 — <a href="https://encoding.spec.whatwg.org/">encoding.spec.whatwg.org</a></li>
           <li>Microsoft Learn: Power Query の「Text/CSV」（UTF-8 と推定するのは BOM で始まるときだけ）— <a href="https://learn.microsoft.com/power-query/connectors/text-csv">learn.microsoft.com/power-query/connectors/text-csv</a>、Partner Center の資料（Excel で問題が出たら BOM 付きの UTF-8 で保存し直す）— <a href="https://learn.microsoft.com/ja-jp/partner-center/billing/use-the-reconciliation-files">learn.microsoft.com/ja-jp/partner-center/billing/use-the-reconciliation-files</a></li>
+          <li>ISO 32000-1:2008（PDF 1.7、Adobe が公開している写し）: ページの回転（Rotate）・暗号化（Encrypt）・しおりとフォーム — <a href="https://archive.org/details/pdf320002008">archive.org/details/pdf320002008</a></li>
           <li>差分: E. W. Myers "An O(ND) Difference Algorithm and Its Variations", Algorithmica 1 (1986)。コードは自分で書いています</li>
         </ul>
       </details>
+      <p>PDF 結合・分割・回転は pdf-lib 1.17.1（MIT License、Copyright (c) 2019 Andrew Dillon）を使っています。npm で配布されている <code>pdf-lib.min.js</code> を手を加えずに置き、PDF のページで最初にファイルを選んだときだけ読み込みます。中に入っているライブラリ（pako・tslib など）のライセンスは <a href="https://github.com/YouheiOonuki/henkan/tree/main/vendor/pdf-lib">vendor/pdf-lib</a> に。</p>
       <p>このツールのコードは MIT License です（<a href="https://github.com/YouheiOonuki/henkan">GitHub</a>）。</p>
     </article>
 
@@ -88,7 +90,7 @@
     <article class="card content" id="notes">
       <h2>ご利用上の注意・データの扱い</h2>
       <ul>
-        <li>貼り付けた文章やファイルは、この端末のブラウザの中だけで処理し、外部には送信しません。文章は保存しません。</li>
+        <li>貼り付けた文章やファイル（PDF を含む）は、この端末のブラウザの中だけで処理し、外部には送信しません。文章と PDF は保存しません。</li>
         <li>設定はこの端末のブラウザ（localStorage、キー <code>henkan_settings</code>）にだけ保存され、外部には送信されません。書き出し・読み込み・消去はツールの画面のボタンから。</li>
         <li>結果は元の文章と見比べてから使ってください。<a href="./guide.html">データの出どころとライセンス</a>もあわせてどうぞ。</li>
       </ul>
@@ -99,6 +101,7 @@
     <article class="card content" id="changelog">
       <h2>更新履歴</h2>
       <ul>
+        <li><time datetime="2026-10-01">2026年10月1日</time> PDF 結合・分割・回転を追加</li>
         <li><time datetime="2026-09-25">2026年9月25日</time> 公開</li>
       </ul>
     </article>
