@@ -4,6 +4,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
+const { pathToFileURL } = require('node:url');
 const crypto = require('node:crypto');
 const zlib = require('node:zlib');
 const ROOT = path.join(__dirname, '..');
@@ -185,7 +186,7 @@ test('1 ファイル版 henkan.html に pdf-lib を入れない（ROADMAP 7.10.2
   const h = read('henkan.html');
   for (const s of ['PDFLib', 'pdf-lib', 'Andrew Dillon', 'HenkanPdf', 'pdf-worker']) assert.ok(!h.includes(s), s);
   assert.ok(Buffer.byteLength(h) < 300000, Buffer.byteLength(h) + ' bytes');
-  const { LIBS, APPS, TOOLS } = await import(path.join(ROOT, 'build.mjs'));
+  const { LIBS, APPS, TOOLS } = await import(pathToFileURL(path.join(ROOT, 'build.mjs')).href);
   assert.ok(!LIBS.concat(APPS).some((p) => /pdf/.test(p)));
   assert.ok(!TOOLS.some((t) => t.key === 'pdf'));
 });
