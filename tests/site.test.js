@@ -3,6 +3,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
+const { pathToFileURL } = require('node:url');
 const ROOT = path.join(__dirname, '..');
 const read = (p) => fs.readFileSync(path.join(ROOT, p), 'utf8');
 const TOOLS = ['diff', 'json', 'csv', 'zenkaku'];
@@ -17,7 +18,7 @@ test('constants: 出典に url と確認日がある', () => {
 });
 
 test('1 ファイル版 henkan.html は build.mjs の出力と同じ（src を直したらビルドしてコミット）', async () => {
-  const { build } = await import(path.join(ROOT, 'build.mjs'));
+  const { build } = await import(pathToFileURL(path.join(ROOT, 'build.mjs')).href);
   assert.equal(read('henkan.html'), build());
 });
 
