@@ -57,7 +57,7 @@
   function render() {
     applySettings();
     el.err.innerHTML = ''; el.notes.innerHTML = ''; el.preview.innerHTML = ''; el.msg.textContent = '';
-    if (!last) { el.big.textContent = '—'; el.sub.textContent = 'JSON を入れると、正しいかどうかと整えた形が出ます。'; H.showOut(el.out, ''); return; }
+    if (!last) { el.big.textContent = '—'; el.sub.textContent = ''; H.showOut(el.out, ''); return; }
     if (!last.ok) {
       var e = last.error;
       el.big.textContent = e.line ? e.line + ' 行 ' + e.col + ' 文字目に誤り' : '読めませんでした';
