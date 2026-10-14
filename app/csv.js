@@ -34,7 +34,7 @@
   function render() {
     applySettings();
     el.notes.innerHTML = ''; el.preview.innerHTML = ''; el.msg.textContent = '';
-    if (!last) { el.big.textContent = '—'; el.sub.textContent = 'CSV を入れると、表の形と変換した結果が出ます。'; H.showOut(el.out, ''); return; }
+    if (!last) { el.big.textContent = '—'; el.sub.textContent = ''; H.showOut(el.out, ''); return; }
     if (last.fail) { el.big.textContent = '—'; el.sub.textContent = '読めませんでした（' + last.fail + '）。'; return; }
     var r = last, cols = Object.keys(r.widths).map(Number), maxCols = Math.max.apply(null, cols.concat([0]));
     var dname = window.HenkanCsv.NAMES[r.delimiter];

@@ -439,7 +439,7 @@ details.about-tool ul { padding-left: 1.2rem; margin: 0.3rem 0 0.5rem; }
         <h2 id="d-h-result">違い</h2>
         <div aria-live="polite">
           <p class="result-big" id="d-big">—</p>
-          <p class="result-sub" id="d-sub">A と B に文章を入れると出ます。</p>
+          <p class="result-sub" id="d-sub"></p>
         </div>
         <div class="view-row" id="d-view-row" hidden>
           <span class="seg" role="group" aria-label="表示">
@@ -489,7 +489,7 @@ details.about-tool ul { padding-left: 1.2rem; margin: 0.3rem 0 0.5rem; }
         <h2 id="j-h-result">結果</h2>
         <div aria-live="polite">
           <p class="result-big" id="j-big">—</p>
-          <p class="result-sub" id="j-sub">JSON を入れると、正しいかどうかと整えた形が出ます。</p>
+          <p class="result-sub" id="j-sub"></p>
         </div>
         <div id="j-err"></div>
         <ul class="notes" id="j-notes"></ul>
@@ -548,7 +548,7 @@ details.about-tool ul { padding-left: 1.2rem; margin: 0.3rem 0 0.5rem; }
         <h2 id="c-h-result">結果</h2>
         <div aria-live="polite">
           <p class="result-big" id="c-big">—</p>
-          <p class="result-sub" id="c-sub">CSV を入れると、表の形と変換した結果が出ます。</p>
+          <p class="result-sub" id="c-sub"></p>
         </div>
         <ul class="notes" id="c-notes"></ul>
         <div id="c-preview"></div>
@@ -642,7 +642,7 @@ details.about-tool ul { padding-left: 1.2rem; margin: 0.3rem 0 0.5rem; }
         <h2 id="k-h-result">結果</h2>
         <div aria-live="polite">
           <p class="result-big" id="k-big">—</p>
-          <p class="result-sub" id="k-sub">文章を入れると、変換した結果が出ます。</p>
+          <p class="result-sub" id="k-sub"></p>
         </div>
         <label for="k-out" class="small">変換した文章</label>
         <textarea id="k-out" class="io out" rows="7" spellcheck="false" readonly></textarea>
@@ -3037,7 +3037,7 @@ self.onmessage = function (e) {
     applySettings();
     el.out.innerHTML = ''; el.msg.textContent = '';
     el.viewRow.hidden = el.actions.hidden = true;
-    if (!last) { el.big.textContent = '—'; el.sub.textContent = 'A と B に文章を入れると出ます。'; return; }
+    if (!last) { el.big.textContent = '—'; el.sub.textContent = ''; return; }
     if (last.error) { el.big.textContent = '—'; el.sub.textContent = last.error; return; }
     var r = last, notes = [];
     if (r.mode === 'line') {
@@ -3193,7 +3193,7 @@ self.onmessage = function (e) {
   function render() {
     applySettings();
     el.err.innerHTML = ''; el.notes.innerHTML = ''; el.preview.innerHTML = ''; el.msg.textContent = '';
-    if (!last) { el.big.textContent = '—'; el.sub.textContent = 'JSON を入れると、正しいかどうかと整えた形が出ます。'; H.showOut(el.out, ''); return; }
+    if (!last) { el.big.textContent = '—'; el.sub.textContent = ''; H.showOut(el.out, ''); return; }
     if (!last.ok) {
       var e = last.error;
       el.big.textContent = e.line ? e.line + ' 行 ' + e.col + ' 文字目に誤り' : '読めませんでした';
@@ -3298,7 +3298,7 @@ self.onmessage = function (e) {
   function render() {
     applySettings();
     el.notes.innerHTML = ''; el.preview.innerHTML = ''; el.msg.textContent = '';
-    if (!last) { el.big.textContent = '—'; el.sub.textContent = 'CSV を入れると、表の形と変換した結果が出ます。'; H.showOut(el.out, ''); return; }
+    if (!last) { el.big.textContent = '—'; el.sub.textContent = ''; H.showOut(el.out, ''); return; }
     if (last.fail) { el.big.textContent = '—'; el.sub.textContent = '読めませんでした（' + last.fail + '）。'; return; }
     var r = last, cols = Object.keys(r.widths).map(Number), maxCols = Math.max.apply(null, cols.concat([0]));
     var dname = window.HenkanCsv.NAMES[r.delimiter];
@@ -3421,7 +3421,7 @@ self.onmessage = function (e) {
   function render() {
     applySettings();
     el.msg.textContent = ''; el.pairs.innerHTML = ''; el.pairsBox.hidden = true;
-    if (!last) { el.big.textContent = '—'; el.sub.textContent = '文章を入れると、変換した結果が出ます。'; H.showOut(el.out, ''); return; }
+    if (!last) { el.big.textContent = '—'; el.sub.textContent = ''; H.showOut(el.out, ''); return; }
     if (last.fail) { el.big.textContent = '—'; el.sub.textContent = '変換できませんでした（' + last.fail + '）。'; return; }
     var same = last.text === H.val(el.input);
     el.big.textContent = last.changed ? H.num(last.changed) + ' か所を変換' : same ? '変える字はありませんでした' : '空白・改行を整理しました';

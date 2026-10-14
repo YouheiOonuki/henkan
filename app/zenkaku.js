@@ -65,7 +65,7 @@
   function render() {
     applySettings();
     el.msg.textContent = ''; el.pairs.innerHTML = ''; el.pairsBox.hidden = true;
-    if (!last) { el.big.textContent = '—'; el.sub.textContent = '文章を入れると、変換した結果が出ます。'; H.showOut(el.out, ''); return; }
+    if (!last) { el.big.textContent = '—'; el.sub.textContent = ''; H.showOut(el.out, ''); return; }
     if (last.fail) { el.big.textContent = '—'; el.sub.textContent = '変換できませんでした（' + last.fail + '）。'; return; }
     var same = last.text === H.val(el.input);
     el.big.textContent = last.changed ? H.num(last.changed) + ' か所を変換' : same ? '変える字はありませんでした' : '空白・改行を整理しました';

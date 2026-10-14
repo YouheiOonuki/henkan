@@ -43,7 +43,7 @@
     applySettings();
     el.out.innerHTML = ''; el.msg.textContent = '';
     el.viewRow.hidden = el.actions.hidden = true;
-    if (!last) { el.big.textContent = '—'; el.sub.textContent = 'A と B に文章を入れると出ます。'; return; }
+    if (!last) { el.big.textContent = '—'; el.sub.textContent = ''; return; }
     if (last.error) { el.big.textContent = '—'; el.sub.textContent = last.error; return; }
     var r = last, notes = [];
     if (r.mode === 'line') {

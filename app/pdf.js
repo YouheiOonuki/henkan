@@ -165,7 +165,7 @@
         '<span class="p-no">' + esc(name) + '</span><span class="p-out">' + no + '</span></button></li>';
     }).join('');
     var sel = pages.filter(function (p) { return p.sel; }).length;
-    $('p-sel').textContent = sel ? sel + ' ページを選んでいます。' : 'ページを押して選び、上のボタンで回す・消す・動かす。ドラッグでも並べ替えられます。';
+    $('p-sel').textContent = sel ? sel + ' ページを選んでいます。' : '';
   }
 
   function plan() {
@@ -196,7 +196,7 @@
     var m = mode(), ok = okFiles(), go = $('p-go');
     go.textContent = m === 'merge' ? '結合して保存' : m === 'split' ? '分割して保存' : '保存する';
     var big = $('p-big'), sub = $('p-sub');
-    if (!ok.length) { big.textContent = '—'; sub.textContent = files.length ? '開ける PDF がありません。' : 'PDF を選ぶと、ここに作るファイルが出ます。'; go.disabled = true; return; }
+    if (!ok.length) { big.textContent = '—'; sub.textContent = files.length ? '開ける PDF がありません。' : ''; go.disabled = true; return; }
     var pl = plan();
     if (pl.error != null) { big.textContent = '—'; sub.textContent = pl.error; go.disabled = true; return; }
     var rot = pages.filter(function (p) { return !p.del && p.rot; }).length, del = pages.filter(function (p) { return p.del; }).length;
