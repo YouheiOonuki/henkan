@@ -1,0 +1,5 @@
+# pre-push-gate.ps1 の既知の良性ヒット。1行 `path:パターン名`。
+#
+# vendor/pdf-lib/pdf-lib.min.js は pdf-lib の配布物（埋め込みフォントの base64）。英数 45 字の並びが
+# x-access-secret の形に当たるだけで秘密ではない（2026-10-15 に確認。前後が + と / の base64 の断片）。
+vendor/pdf-lib/pdf-lib.min.js:x-access-secret
