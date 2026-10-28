@@ -145,9 +145,9 @@
       return '<li draggable="' + (f.error ? 'false' : 'true') + '" data-k="' + k + '">' + tag +
         '<span class="p-fname"><span class="p-name">' + esc(f.name) + '</span>' + info + '</span>' +
         '<span class="p-fbtn">' +
-        '<button type="button" class="btn-sub" data-up="' + k + '" aria-label="' + esc(f.name) + ' を上へ"' + (k === 0 ? ' disabled' : '') + '>↑</button>' +
-        '<button type="button" class="btn-sub" data-down="' + k + '" aria-label="' + esc(f.name) + ' を下へ"' + (k === files.length - 1 ? ' disabled' : '') + '>↓</button>' +
-        '<button type="button" class="btn-sub" data-rm="' + f.id + '" aria-label="' + esc(f.name) + ' を外す">✕</button></span></li>';
+        '<button type="button" class="btn" data-up="' + k + '" aria-label="' + esc(f.name) + ' を上へ"' + (k === 0 ? ' disabled' : '') + '>↑</button>' +
+        '<button type="button" class="btn" data-down="' + k + '" aria-label="' + esc(f.name) + ' を下へ"' + (k === files.length - 1 ? ' disabled' : '') + '>↓</button>' +
+        '<button type="button" class="btn" data-rm="' + f.id + '" aria-label="' + esc(f.name) + ' を外す">✕</button></span></li>';
     }).join('');
   }
   function renderGrid() {
@@ -255,7 +255,7 @@
       outs = res.map(function (b, k) { return { name: pl.list[k].name, bytes: b, pages: pl.list[k].pages }; });
       var html = outs.map(function (o, k) {
         o.url = URL.createObjectURL(new Blob([o.bytes], { type: 'application/pdf' }));
-        return '<li><a class="btn-sub" href="' + o.url + '" download="' + esc(o.name) + '">' + esc(o.name) + '</a> <span class="small">' + o.pages + ' ページ・' + bytes(o.bytes.length) + '</span></li>';
+        return '<li><a class="btn" href="' + o.url + '" download="' + esc(o.name) + '">' + esc(o.name) + '</a> <span class="small">' + o.pages + ' ページ・' + bytes(o.bytes.length) + '</span></li>';
       }).join('');
       $('p-outs').innerHTML = (outs.length > 1 ? '<li><button type="button" class="btn" id="p-zip">ZIP にまとめて保存（' + outs.length + ' ファイル）</button></li>' : '') + html;
       if (outs.length === 1) $('p-outs').querySelector('a').click();

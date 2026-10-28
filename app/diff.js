@@ -105,7 +105,7 @@
     var head2 = split ? '<colgroup><col class="n"><col><col class="n"><col></colgroup><thead><tr><th class="n">A</th><th>元の文章（A）</th><th class="n">B</th><th>新しい文章（B）</th></tr></thead>'
       : '<colgroup><col class="n"><col class="n"><col class="s"><col></colgroup><thead><tr><th class="n">A</th><th class="n">B</th><th class="s"></th><th>行</th></tr></thead>';
     var html = '<div class="diff-scroll"><table class="diff ' + (split ? 'split' : 'unified') + '">' + head2 + '<tbody>' + rows.join('') + '</tbody></table></div>';
-    if (more) html += '<p class="more"><button type="button" class="btn-sub" id="d-more">続きを表示（' + H.num(ROWS) + ' 行ずつ）</button></p>';
+    if (more) html += '<p class="more"><button type="button" class="btn" id="d-more">続きを表示（' + H.num(ROWS) + ' 行ずつ）</button></p>';
     return html;
   }
 

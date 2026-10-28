@@ -18,8 +18,8 @@
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="theme-color" content="#8b4513" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#1c1814" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#eef0f2" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#15191d" media="(prefers-color-scheme: dark)">
 
   <script type="application/ld+json">
   {
@@ -56,11 +56,11 @@
         <legend>比べる 2 つの文章</legend>
         <div class="pair">
           <div class="field">
-            <div class="label-row"><label for="d-a">元の文章（A）</label><button type="button" class="btn-sub" id="d-a-file">ファイルを開く</button></div>
+            <div class="label-row"><label for="d-a">元の文章（A）</label><button type="button" class="btn" id="d-a-file">ファイルを開く</button></div>
             <textarea id="d-a" class="io" rows="7" spellcheck="false" placeholder="ここに貼り付け（ファイルのドロップも可）"></textarea>
           </div>
           <div class="field">
-            <div class="label-row"><label for="d-b">新しい文章（B）</label><button type="button" class="btn-sub" id="d-b-file">ファイルを開く</button></div>
+            <div class="label-row"><label for="d-b">新しい文章（B）</label><button type="button" class="btn" id="d-b-file">ファイルを開く</button></div>
             <textarea id="d-b" class="io" rows="7" spellcheck="false" placeholder="ここに貼り付け（ファイルのドロップも可）"></textarea>
           </div>
         </div>
@@ -81,8 +81,8 @@
         </div>
         <div id="d-out" class="diff-out"></div>
         <div class="btn-row" id="d-actions" hidden>
-          <button type="button" class="btn-sub" id="d-copy-unified">unified 形式でコピー</button>
-          <button type="button" class="btn-sub" id="d-swap">A と B を入れ替える</button>
+          <button type="button" class="btn" id="d-copy-unified">unified 形式でコピー</button>
+          <button type="button" class="btn" id="d-swap">A と B を入れ替える</button>
         </div>
         <p class="small" id="d-msg" aria-live="polite"></p>
       </section>
@@ -113,7 +113,7 @@
       <div class="btn-row">
         <button type="button" class="btn backup-export">ファイルに書き出す</button>
         <button type="button" class="btn backup-import">ファイルから読み込む</button>
-        <button type="button" class="btn btn-reset" data-reset-storage="henkan_">保存した内容をすべて消す（初期状態に戻す）</button>
+        <button type="button" class="btn" data-reset-storage="henkan_">保存した内容をすべて消す（初期状態に戻す）</button>
       </div>
       <input type="file" accept=".json,application/json" hidden>
       <p class="small backup-msg" aria-live="polite"></p>

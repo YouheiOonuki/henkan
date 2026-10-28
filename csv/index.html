@@ -18,8 +18,8 @@
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="theme-color" content="#8b4513" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#1c1814" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#eef0f2" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#15191d" media="(prefers-color-scheme: dark)">
 
   <script type="application/ld+json">
   {
@@ -55,7 +55,7 @@
       <fieldset class="card req">
         <legend>CSV</legend>
         <div class="field">
-          <div class="label-row"><label for="c-in">整える・変換する CSV</label><button type="button" class="btn-sub" id="c-file">ファイルを開く</button></div>
+          <div class="label-row"><label for="c-in">整える・変換する CSV</label><button type="button" class="btn" id="c-file">ファイルを開く</button></div>
           <textarea id="c-in" class="io" rows="9" spellcheck="false" data-accept=".csv,.tsv,.txt,text/csv,text/plain" placeholder="名前,郵便番号&#10;山田,0010001"></textarea>
         </div>
       </fieldset>
@@ -77,8 +77,8 @@
         <label for="c-out" class="small">出力</label>
         <textarea id="c-out" class="io out" rows="8" spellcheck="false" readonly></textarea>
         <div class="btn-row">
-          <button type="button" class="btn-sub" id="c-copy">コピー</button>
-          <button type="button" class="btn-sub" id="c-save">ファイルに保存</button>
+          <button type="button" class="btn" id="c-copy">コピー</button>
+          <button type="button" class="btn" id="c-save">ファイルに保存</button>
         </div>
         <p class="small" id="c-msg" aria-live="polite"></p>
       </section>
@@ -137,7 +137,7 @@
       <div class="btn-row">
         <button type="button" class="btn backup-export">ファイルに書き出す</button>
         <button type="button" class="btn backup-import">ファイルから読み込む</button>
-        <button type="button" class="btn btn-reset" data-reset-storage="henkan_">保存した内容をすべて消す（初期状態に戻す）</button>
+        <button type="button" class="btn" data-reset-storage="henkan_">保存した内容をすべて消す（初期状態に戻す）</button>
       </div>
       <input type="file" accept=".json,application/json" hidden>
       <p class="small backup-msg" aria-live="polite"></p>

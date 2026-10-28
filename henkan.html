@@ -10,8 +10,8 @@
      このファイルは外部と通信しません（上の Content-Security-Policy で禁止）。ビルド: node build.mjs -->
 <style>
 /* ===========================
-   テキスト変換（henkan） — yorozu-craft 共通の和紙風の配色
-   色はトークン（--bg / --card / --text / --muted / --accent / --border）だけを使う。
+   テキスト変換（henkan） — yorozu-common v2 の皮（B「静かな道具」）の上に置く、この道具だけの部品
+   色・角・字の大きさは皮のトークン（--bg / --card / --text / --muted / --accent / --border / --radius / --sp-* / --fs-*）だけを使う。
    ダークモードは端末の設定に自動で合わせる（prefers-color-scheme。手動切替は付けない）
    =========================== */
 /* yorozu-common:begin v2 — サイト共通の土台と皮。正本は youheioonuki.github.io の tools/common/v2/base.css と skin.css（yorozu-plans DESIGN.md）。
@@ -82,328 +82,175 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 :where(html:not([data-skin="base"])) :where(.notice, [data-keep]) { border-left: 4px solid var(--text); background: var(--bg-2); padding: var(--sp-2) var(--sp-3); }
 :where(html:not([data-skin="base"])) :where(.fixed-bar) { position: sticky; bottom: 0; background: var(--card); border-top: 1px solid var(--border); padding: var(--sp-2) var(--sp-4); }
 /* yorozu-common:end */
-/* yorozu-v1-carry — v1 の共通（和紙の色、2026-09-23〜10-17）から、このファイルのページが使っていた見た目をそのまま持ち込んだ（yorozu-plans ROADMAP 7.99、K192 段 3 の 0）。
-   段 3 の 2〜4 でこのページを v2 のトークンに載せ替えるときに、yorozu-v1-carry:end まで消す */
-:root {
-  color-scheme: light dark;
-  --bg: #f0ebe0; --bg-2: #e6dfd0; --card: #faf6ee; --text: #3a3025; --muted: #6e604f;
-  --accent: #8b4513; --accent-soft: #f3e6d8; --border: #cfc0a0; --input-border: #857561; --shadow: rgba(58, 48, 37, 0.12);
-  --error: #ce0000; --ok: #197a4b; --focus: #ffd43d; --focus-ring: #000;
-  --font-ui: "Noto Sans JP", "Noto Sans CJK JP", "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
-  --lh-body: 1.7; --lh-tight: 1.4; --radius: 8px;
-}
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #1c1814; --bg-2: #25201a; --card: #2b251e; --text: #ece4d6; --muted: #b9ab96;
-    --accent: #e0a066; --accent-soft: #3a2e22; --border: #4a3f33; --input-border: #8c7d68; --shadow: rgba(0, 0, 0, 0.4);
-    --error: #ff8a7a; --ok: #6fcf97; --focus-ring: #ffd43d; --focus: #000;
-  }
-}
-body { font-family: var(--font-ui); background: var(--bg); color: var(--text); line-height: var(--lh-body); }
-a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 3px; }
-@media (hover: hover) { a:hover { text-decoration-thickness: 3px; } }
-:where(input, textarea)::placeholder { color: var(--muted); opacity: 1; }
-.app-header > p { max-width: 40em; margin-left: auto; margin-right: auto; }
-/* yorozu-v1-carry:end */
-
-:root {
-  color-scheme: light dark;
-  --bg: #f0ebe0;
-  --bg-2: #e6dfd0;
-  --card: #faf6ee;
-  --text: #3a3025;
-  --muted: #6e604f;
-  --accent: #8b4513;
-  --accent-soft: #f3e6d8;
-  --border: #cfc0a0;
-  --shadow: rgba(58, 48, 37, 0.12);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #1c1814;
-    --bg-2: #25201a;
-    --card: #2b251e;
-    --text: #ece4d6;
-    --muted: #b9ab96;
-    --accent: #e0a066;
-    --accent-soft: #3a2e22;
-    --border: #4a3f33;
-    --shadow: rgba(0, 0, 0, 0.4);
-  }
-}
-
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-[hidden] { display: none !important; }
-
-body {
-  /* README「ツールを追加するとき」9: 端末のフォント。Web フォントは読まない */
-  font-family: "Noto Sans JP", "Noto Sans CJK JP", "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
-  background: var(--bg);
-  color: var(--text);
-  line-height: 1.7;
-}
-
-a { color: var(--accent); }
 
 /* ヘッダー */
 .app-header {
   text-align: center;
-  padding: 1.4rem 1rem 1.1rem;
+  padding: var(--sp-4);
   background: var(--bg-2);
-  border-bottom: 2px solid var(--border);
+  border-bottom: 1px solid var(--border);
 }
-.app-header h1 { font-size: 1.45rem; color: var(--accent); line-height: 1.4; }
-.app-header .subtitle { font-size: 0.88rem; color: var(--muted); margin-top: 0.3rem; }
+.app-header .subtitle { font-size: var(--fs-s); color: var(--muted); margin-top: var(--sp-1); }
+.app-header > p { max-width: 40em; margin-left: auto; margin-right: auto; }
 
 /* レイアウト */
-.app-main { max-width: 680px; margin: 0 auto; padding: 1rem; }
-.card {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 1.2rem;
-  margin-bottom: 1rem;
-  box-shadow: 0 2px 8px var(--shadow);
-}
-.card h2 {
-  font-size: 1.02rem;
-  color: var(--accent);
-  border-bottom: 1px solid var(--border);
-  padding-bottom: 0.4rem;
-  margin-bottom: 0.9rem;
-}
+.app-main { max-width: 680px; margin: 0 auto; padding: var(--sp-4); }
+.app-main.app-wide { max-width: 1100px; }
+.card { margin-bottom: var(--sp-4); }
+.card h2 { padding-bottom: var(--sp-1); margin-bottom: var(--sp-3); border-bottom: 1px solid var(--border); }
 
 /* 入力 */
-.field { margin-bottom: 1rem; }
-.field label { display: block; font-weight: 600; font-size: 0.95rem; margin-bottom: 0.25rem; }
-.field .hint { font-size: 0.8rem; color: var(--muted); margin-bottom: 0.4rem; }
-.field input[type="number"], .field input[type="text"], .field select {
-  width: 100%;
-  max-width: 16rem;
-  padding: 0.45rem 0.5rem;
-  font-size: 1rem;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--card);
-  color: var(--text);
-}
+.field { margin-bottom: var(--sp-4); }
+.field label { display: block; font-weight: 700; margin-bottom: var(--sp-1); }
+.field .hint { font-size: var(--fs-s); color: var(--muted); margin-bottom: var(--sp-2); }
+.field input[type="number"], .field input[type="text"], .field select { width: 100%; max-width: 16rem; }
 
-.btn {
-  display: inline-block;
-  padding: 0.5rem 1.1rem;
-  border: none;
-  border-radius: 6px;
-  background: var(--accent);
-  color: var(--card);
-  font-size: 0.95rem;
-  font-weight: 600;
-  cursor: pointer;
-}
-.btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-a.btn, a.btn-sub { text-decoration: none; }
-a.btn-sub { display: inline-flex; align-items: center; }
+/* ボタン（主は .btn-primary、ほかは .btn。色と線は皮が持つ） */
+.btn, .btn-primary { display: inline-flex; align-items: center; justify-content: center; min-height: var(--tap); text-decoration: none; }
+.btn:disabled, .btn-primary:disabled { opacity: 0.5; cursor: default; }
 
 /* 読みもの（guide.html） */
-.content h3 { font-size: 0.95rem; margin: 1rem 0 0.3rem; }
-.content p, .content li { font-size: 0.9rem; }
-.content p + p { margin-top: 0.5rem; }
-.content ul, .content ol { padding-left: 1.3rem; margin: 0.3rem 0; }
-.faq dt { font-weight: 600; margin-top: 0.9rem; font-size: 0.92rem; }
+.content h3 { margin: var(--sp-4) 0 var(--sp-1); }
+.content p + p { margin-top: var(--sp-2); }
+.content ul, .content ol { padding-left: 1.3rem; margin: var(--sp-1) 0; }
+.faq dt { font-weight: 700; margin-top: var(--sp-4); }
 .faq dt::before { content: 'Q. '; color: var(--accent); }
-.faq dd { font-size: 0.88rem; color: var(--muted); padding: 0.2rem 0 0.5rem 1.2rem; border-bottom: 1px solid var(--border); }
-.info-list { display: grid; grid-template-columns: max-content 1fr; gap: 0.4rem 1.2rem; font-size: 0.9rem; }
-.info-list dt { font-weight: 600; }
-.info-list dd { color: var(--muted); }
-.small { font-size: 0.8rem; color: var(--muted); margin-top: 0.4rem; }
+.faq dd { color: var(--muted); padding: var(--sp-1) 0 var(--sp-2) 1.2rem; border-bottom: 1px solid var(--border); }
+.small { font-size: var(--fs-s); color: var(--muted); margin-top: var(--sp-2); }
 
 /* フッター */
 .app-footer {
   text-align: center;
-  padding: 1rem;
-  font-size: 0.78rem;
+  padding: var(--sp-4);
+  font-size: var(--fs-s);
   color: var(--muted);
   border-top: 1px solid var(--border);
-  margin-top: 0.5rem;
+  margin-top: var(--sp-2);
 }
-.footer-nav ul { list-style: none; display: flex; justify-content: center; flex-wrap: wrap; gap: 0.4rem 1.1rem; margin-bottom: 0.6rem; }
-.footer-nav a { color: var(--muted); text-decoration: none; }
+.footer-nav ul { list-style: none; display: flex; justify-content: center; flex-wrap: wrap; gap: 0 var(--sp-4); margin-bottom: var(--sp-2); }
+.footer-nav a { display: inline-flex; align-items: center; min-height: var(--tap); color: var(--muted); text-decoration: none; }
 .footer-nav a:hover, .footer-nav a[aria-current="page"] { color: var(--accent); }
 
-@media (max-width: 480px) {
-  .app-header h1 { font-size: 1.2rem; }
-}
-
 /* ===========================
-   画面の骨組み（yorozu-plans の docs/SCREEN.md。README「ツールを追加するとき」25）
-   必須の入力（fieldset.req）→ 結果（.result-card）→ くわしく入れる（details.opt）、上端の固定バー、PC の 2 カラム
-   seido-keisan/nenmatsu と gakushu-print の試験（2026-09-24）から取り出したもの
+   画面の骨組み（yorozu-plans の docs/SCREEN.md）
+   必須の入力（fieldset.req）→ 結果（.result-card）→ くわしく入れる（details.opt）
    =========================== */
 fieldset.card { min-width: 0; }
 .req legend {
   float: left; width: 100%;   /* legend を枠の上に載せず、h2 と同じ見た目で枠の中に置く */
-  font-size: 1.02rem; font-weight: 700; color: var(--accent);
-  border-bottom: 1px solid var(--border); padding-bottom: 0.4rem; margin-bottom: 0.9rem;
+  font-size: var(--fs-l); font-weight: 800; line-height: var(--lh-tight);
+  border-bottom: 1px solid var(--border); padding-bottom: var(--sp-1); margin-bottom: var(--sp-3);
 }
 .req legend + * { clear: both; }
 
 /* 結果: 大きな数字 1 つ＋ 1 行。内訳は details.rels */
-.result-card { scroll-margin-top: 56px; }   /* 固定バー（44px）で見出しが隠れないように */
-.result-card:focus { outline: none; }
-.result-big { font-size: 1.8rem; font-weight: 700; color: var(--accent); line-height: 1.3; }
-.result-sub { font-size: 0.9rem; color: var(--muted); }
-details.rels > summary { cursor: pointer; min-height: 44px; padding: 0.55rem 0; list-style: none; color: var(--accent); font-size: 0.92rem; }
-details.rels > summary::-webkit-details-marker { display: none; }
-details.rels > summary::before { content: '▸'; margin-right: 0.4rem; }
-details.rels[open] > summary::before { content: '▾'; }
+.result-big { font-size: var(--fs-xl); font-weight: 800; color: var(--accent); line-height: var(--lh-tight); }
+.result-sub { font-size: var(--fs-s); color: var(--muted); }
+details.rels > summary { color: var(--accent); }
 
-/* くわしく入れる（1 グループ 1 つの details）。summary の .opt-state に今の状態を出す（screen.js の detailsSummary） */
-details.card.opt { padding: 0 1.2rem; margin-bottom: 0.6rem; }
-details.card.opt > summary {
-  cursor: pointer; display: block; min-height: 44px; padding: 0.6rem 0;
-  color: var(--accent); font-weight: 600; font-size: 0.95rem; list-style: none;
-}
-details.card.opt > summary::-webkit-details-marker { display: none; }
-details.card.opt > summary::before { content: '▸'; margin-right: 0.4rem; }
-details.card.opt[open] > summary::before { content: '▾'; }
-details.card.opt[open] { padding-bottom: 0.9rem; }
-details.card.opt[open] > summary { border-bottom: 1px solid var(--border); margin-bottom: 0.9rem; }
-details > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.opt-state { color: var(--text); font-weight: normal; }
-.btn-row { display: flex; flex-wrap: wrap; gap: 0.6rem; margin: 0.6rem 0; }   /* ボタンの間隔（SCREEN.md 5 章。4 章の上下 12px 以上は margin で） */
-.btn-row .btn { min-height: 44px; }
-
-/* 固定バー（SCREEN.md 0 章の 3・D59）: 上端に 1 行、高さ 44px。下端は AdSense のアンカー広告が使う。
-   読み込み時は hidden（screen.js が出し入れする。fixed なのでレイアウトはずれない） */
-.fixbar {
-  position: fixed; top: 0; left: 0; right: 0; z-index: 50; height: 44px;
-  background: var(--card); border-bottom: 2px solid var(--accent); box-shadow: 0 2px 8px var(--shadow);
-}
-.fixbar a, .fixbar button {
-  display: block; width: 100%; max-width: 720px; margin: 0 auto; padding: 0 1rem; height: 42px; line-height: 42px; text-align: center;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font: inherit; font-weight: 700;
-  color: var(--accent); background: none; border: none; text-decoration: none; cursor: pointer;
-}
-.fixbar a:focus-visible, .fixbar button:focus-visible { outline: 2px solid var(--accent); outline-offset: -3px; }
-
-/* PC（900px 以上）の 2 カラム（D63: 制度の計算機だけ）。<main class="app-main layout-2col"> にすると、
-   左に入力・右に結果（sticky）。結果が常に見えるので、固定バーに fixbar-narrow も付けて PC では出さない */
-@media (min-width: 900px) {
-  .fixbar-narrow { display: none !important; }
-  .layout-2col { max-width: 1120px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 26rem); column-gap: 1.2rem; align-items: start; }
-  .layout-2col > *, .layout-2col > form > * { grid-column: 1; }
-  .layout-2col > form { display: contents; }
-  .layout-2col .result-card { grid-column: 2; grid-row: 1 / span 30; position: sticky; top: 1rem; max-height: calc(100vh - 2rem); overflow-y: auto; }
-}
+/* くわしく入れる（1 グループ 1 つの details）。summary の .opt-state に今の状態を出す */
+details.card.opt { margin-bottom: var(--sp-3); }
+details.card.opt > summary { color: var(--accent); }
+details.card.opt[open] > summary { border-bottom: 1px solid var(--border); margin-bottom: var(--sp-3); }
+.opt-state { color: var(--text); font-weight: 400; }
+.btn-row { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin: var(--sp-3) 0; }   /* ボタンの間隔（SCREEN.md 5 章） */
 
 @media print {
-  .fixbar, .no-print { display: none !important; }
+  .no-print { display: none !important; }
   /* 印刷では折りたたみの中も出す（途中の計算・入れた値を紙に残す） */
   main details::details-content { content-visibility: visible; display: block; }
   main details > summary::before { content: none; }
-  .layout-2col { display: block; }
-  .layout-2col .result-card { position: static; max-height: none; overflow: visible; }
-  /* 広告は印刷に出さない（gakushu-print と同じ） */
-  ins.adsbygoogle, .google-auto-placed, iframe[id^="aswift"], iframe[id^="google_ads"] { display: none !important; }
 }
 
 /* ===========================
    テキスト変換（henkan）の部品
    =========================== */
-.app-main.app-wide { max-width: 1100px; }
-:root { --del-bg: #f6d5cf; --del-strong: #e8a295; --ins-bg: #d6ecd2; --ins-strong: #9fd097; --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Noto Sans Mono CJK JP", monospace; }
-@media (prefers-color-scheme: dark) {
-  :root { --del-bg: #4a2620; --del-strong: #7a3a2e; --ins-bg: #23401f; --ins-strong: #37652f; }
+/* 差分の色: 消えた行・文字は --error、増えた行・文字は --ok の色相のまま、面の地（--card）に混ぜて薄くする */
+:root {
+  --del-bg: color-mix(in srgb, var(--error) 14%, var(--card)); --del-strong: color-mix(in srgb, var(--error) 34%, var(--card));
+  --ins-bg: color-mix(in srgb, var(--ok) 14%, var(--card)); --ins-strong: color-mix(in srgb, var(--ok) 34%, var(--card));
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Noto Sans Mono CJK JP", monospace;
 }
 textarea.io {
   display: block; width: 100%; min-height: 8rem; resize: vertical;
-  padding: 0.5rem 0.6rem; font: 0.9rem/1.5 var(--mono);
-  border: 1px solid var(--border); border-radius: 6px; background: var(--card); color: var(--text);
-  tab-size: 4;
+  font: 1rem/1.5 var(--mono); tab-size: 4;
 }
 textarea.io.out { background: var(--bg); }
 textarea.io.drop { outline: 3px dashed var(--accent); }
-.pair { display: grid; gap: 0 1rem; }
+.pair { display: grid; gap: 0 var(--sp-4); }
 @media (min-width: 760px) { .pair { grid-template-columns: 1fr 1fr; } }
-.pair .field { margin-bottom: 0.6rem; }
-.label-row { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.25rem; }
+.pair .field { margin-bottom: var(--sp-3); }
+.label-row { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); margin-bottom: var(--sp-1); }
 .label-row label { margin: 0 !important; }
-.btn-sub {
-  display: inline-block; min-height: 36px; padding: 0.3rem 0.8rem; font: inherit; font-size: 0.85rem;
-  border: 1px solid var(--accent); border-radius: 6px; background: var(--card); color: var(--accent); cursor: pointer;
-}
-.btn-sub:focus-visible, .seg input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
-.btn-reset { background: var(--muted); }
-fieldset.plain { border: none; margin: 0 0 0.8rem; min-width: 0; }
-fieldset.plain legend { font-weight: 600; font-size: 0.92rem; margin-bottom: 0.2rem; }
-.inline-check { display: flex; align-items: center; gap: 0.45rem; min-height: 36px; font-size: 0.92rem; cursor: pointer; }
+fieldset.plain { border: none; margin: 0 0 var(--sp-3); min-width: 0; }
+fieldset.plain legend { font-weight: 700; margin-bottom: var(--sp-1); }
+.inline-check { display: flex; align-items: center; gap: var(--sp-2); min-height: var(--tap); cursor: pointer; }
 .inline-check input { width: 1.15rem; height: 1.15rem; accent-color: var(--accent); flex: none; }
-.view-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 1.2rem; margin: 0.6rem 0; }
-.seg { display: inline-flex; border: 1px solid var(--accent); border-radius: 6px; overflow: hidden; }
-.seg label { display: flex; align-items: center; gap: 0.3rem; padding: 0 0.7rem; min-height: 38px; font-size: 0.88rem; cursor: pointer; }
-.seg label + label { border-left: 1px solid var(--accent); }
+.view-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-1) var(--sp-6); margin: var(--sp-3) 0; }
+.seg { display: inline-flex; border: 1px solid var(--input-border); border-radius: var(--radius); overflow: hidden; }
+.seg label { display: flex; align-items: center; gap: var(--sp-1); padding: 0 var(--sp-3); min-height: var(--tap); cursor: pointer; }
+.seg label + label { border-left: 1px solid var(--input-border); }
 .seg input { accent-color: var(--accent); }
-.seg label:has(input:checked) { background: var(--accent-soft); font-weight: 600; }
-.select-row { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; }
-.select-row .field { margin-bottom: 0.4rem; }
+.seg label:has(input:checked) { background: var(--accent-soft); font-weight: 700; }
+.select-row { display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-4); }
+.select-row .field { margin-bottom: var(--sp-2); }
 .field select.wide { max-width: 100%; }
 
 /* 差分の表 */
-.diff-scroll { overflow-x: auto; border: 1px solid var(--border); border-radius: 6px; margin-top: 0.4rem; }
-table.diff { width: 100%; border-collapse: collapse; table-layout: fixed; font: 0.82rem/1.45 var(--mono); }
+.diff-scroll { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); margin-top: var(--sp-2); }
+table.diff { width: 100%; border-collapse: collapse; table-layout: fixed; font: 1rem/1.45 var(--mono); }
 table.diff col.n { width: 3.2em; }
 table.diff col.s { width: 1.5em; }
-table.diff th { font: 600 0.78rem/1.4 inherit; font-family: inherit; text-align: left; color: var(--muted); background: var(--bg-2); padding: 0.2rem 0.4rem; }
-table.diff td { padding: 0.05rem 0.4rem; vertical-align: top; white-space: pre-wrap; word-break: break-all; overflow-wrap: anywhere; }
-table.diff td.n { color: var(--muted); text-align: right; user-select: none; font-size: 0.75rem; }
+table.diff th { font: 700 var(--fs-s)/1.4 var(--font-ui); text-align: left; color: var(--muted); background: var(--bg-2); padding: var(--sp-1); }
+table.diff td { padding: 0 var(--sp-1); vertical-align: top; white-space: pre-wrap; word-break: break-all; overflow-wrap: anywhere; }
+table.diff td.n { color: var(--muted); text-align: right; user-select: none; font-size: var(--fs-s); }
 table.diff td.s { color: var(--muted); user-select: none; text-align: center; }
 table.diff td.del { background: var(--del-bg); }
 table.diff td.ins { background: var(--ins-bg); }
 table.diff td.none { background: var(--bg-2); }
-table.diff tr.fold td { text-align: center; color: var(--muted); background: var(--bg-2); font-size: 0.78rem; }
+table.diff tr.fold td { text-align: center; color: var(--muted); background: var(--bg-2); font-size: var(--fs-s); }
 table.diff.split td.c:nth-child(2) { border-right: 1px solid var(--border); }
 del, ins { text-decoration: none; border-radius: 2px; }
-del { background: var(--del-strong); text-decoration: line-through; text-decoration-color: rgba(0,0,0,0.35); }
+del { background: var(--del-strong); text-decoration: line-through; }
 ins { background: var(--ins-strong); }
-pre.char { white-space: pre-wrap; word-break: break-all; overflow-wrap: anywhere; font: 0.9rem/1.7 var(--mono); background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 0.5rem 0.6rem; max-height: 70vh; overflow-y: auto; }
-.char-split { display: grid; gap: 0.6rem; }
+pre.char { white-space: pre-wrap; word-break: break-all; overflow-wrap: anywhere; font: 1rem/1.7 var(--mono); background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: var(--sp-2) var(--sp-3); max-height: 70vh; overflow-y: auto; }
+.char-split { display: grid; gap: var(--sp-3); }
 @media (min-width: 760px) { .char-split { grid-template-columns: 1fr 1fr; } }
-.more { text-align: center; margin-top: 0.5rem; }
-.diff-out { margin-top: 0.3rem; }
+.more { text-align: center; margin-top: var(--sp-2); }
+.diff-out { margin-top: var(--sp-1); }
 
 /* 結果の中の注意・表 */
-.notes { margin: 0.5rem 0 0; padding-left: 1.2rem; font-size: 0.85rem; }
-.notes li { margin: 0.15rem 0; }
-.err-box { margin-top: 0.5rem; padding: 0.5rem 0.7rem; border-left: 4px solid var(--del-strong); background: var(--del-bg); border-radius: 4px; font-size: 0.9rem; }
-.err-box pre { font: 0.82rem/1.5 var(--mono); white-space: pre; overflow-x: auto; margin-top: 0.4rem; }
-.preview { overflow: auto; max-height: 60vh; border: 1px solid var(--border); border-radius: 6px; margin: 0.5rem 0; }
-.preview table { border-collapse: collapse; font-size: 0.82rem; }
-.preview th, .preview td { border: 1px solid var(--border); padding: 0.15rem 0.45rem; text-align: left; vertical-align: top; white-space: pre-wrap; max-width: 18rem; overflow-wrap: anywhere; }
+.notes { margin: var(--sp-2) 0 0; padding-left: 1.2rem; font-size: var(--fs-s); }
+.notes li { margin: var(--sp-1) 0; }
+.err-box { margin-top: var(--sp-2); padding: var(--sp-2) var(--sp-3); border-left: 4px solid var(--error); background: var(--del-bg); }
+.err-box pre { font: var(--fs-s)/1.5 var(--mono); white-space: pre; overflow-x: auto; margin-top: var(--sp-2); }
+.preview { overflow: auto; max-height: 60vh; border: 1px solid var(--border); border-radius: var(--radius); margin: var(--sp-2) 0; }
+.preview table { border-collapse: collapse; font-size: 1rem; }
+.preview th, .preview td { border: 1px solid var(--border); padding: var(--sp-1) var(--sp-2); text-align: left; vertical-align: top; white-space: pre-wrap; max-width: 18rem; overflow-wrap: anywhere; }
 .preview thead th { background: var(--bg-2); position: sticky; top: 0; }
 .preview td.rn, .preview th.rn { color: var(--muted); background: var(--bg-2); text-align: right; }
-.pairs { columns: 2 12rem; font-size: 0.85rem; list-style: none; padding: 0; }
+.pairs { columns: 2 12rem; font-size: var(--fs-s); list-style: none; padding: 0; }
 .pairs li { break-inside: avoid; font-family: var(--mono); }
 
 /* 入口（index.html）の一覧 */
-.tool-list { list-style: none; display: grid; gap: 0.8rem; margin-bottom: 1rem; }
+.tool-list { list-style: none; display: grid; gap: var(--sp-3); margin-bottom: var(--sp-4); }
 @media (min-width: 640px) { .tool-list { grid-template-columns: 1fr 1fr; } }
-.tool-list a { display: block; height: 100%; padding: 0.9rem 1rem; border: 1px solid var(--border); border-radius: 8px; background: var(--card); text-decoration: none; color: var(--text); box-shadow: 0 2px 8px var(--shadow); }
-.tool-list a strong { color: var(--accent); font-size: 1.02rem; display: block; margin-bottom: 0.2rem; }
-.tool-list a span { font-size: 0.85rem; color: var(--muted); }
+.tool-list a { display: block; height: 100%; padding: var(--sp-3) var(--sp-4); border: 1px solid var(--border); border-radius: var(--radius); background: var(--card); text-decoration: none; color: var(--text); }
+.tool-list a strong { color: var(--accent); font-size: var(--fs-m); display: block; margin-bottom: var(--sp-1); }
+.tool-list a span { font-size: var(--fs-s); color: var(--muted); }
 
 /* 1 ファイル版のタブ */
-.tabs { display: flex; flex-wrap: wrap; gap: 0.4rem; max-width: 1100px; margin: 0.8rem auto 0; padding: 0 1rem; }
-.tabs button { min-height: 40px; padding: 0.3rem 0.9rem; font: inherit; font-size: 0.9rem; border: 1px solid var(--border); border-radius: 6px 6px 0 0; background: var(--bg-2); color: var(--text); cursor: pointer; }
-.tabs button[aria-selected="true"] { background: var(--card); color: var(--accent); font-weight: 700; border-bottom-color: var(--card); }
-.plain-table { border-collapse: collapse; font-size: 0.85rem; margin: 0.4rem 0; }
-.plain-table th, .plain-table td { border: 1px solid var(--border); padding: 0.2rem 0.5rem; text-align: left; vertical-align: top; }
+.tabs { display: flex; flex-wrap: wrap; gap: var(--sp-1); max-width: 1100px; margin: var(--sp-3) auto 0; padding: 0 var(--sp-4); }
+.tabs button { min-height: var(--tap); padding: 0 var(--sp-4); border: 1px solid var(--border); border-radius: var(--radius) var(--radius) 0 0; background: var(--bg-2); color: var(--text); cursor: pointer; }
+.tabs button[aria-selected="true"] { background: var(--card); color: var(--accent); font-weight: 800; border-bottom-color: var(--card); }
+.plain-table { border-collapse: collapse; font-size: var(--fs-s); margin: var(--sp-1) 0; }
+.plain-table th, .plain-table td { border: 1px solid var(--border); padding: var(--sp-1) var(--sp-2); text-align: left; vertical-align: top; }
 .plain-table th { background: var(--bg-2); }
 
 /* この道具について（結果の後ろの折りたたみ。使い方ページの要約。AdSense 審査 2026-10-04） */
 details.card.opt.about-tool > summary { white-space: normal; }   /* 長い summary を折り返す */
-details.about-tool h3 { font-size: 0.95rem; margin: 0.9rem 0 0.3rem; }
-details.about-tool p, details.about-tool li { font-size: 0.9rem; line-height: 1.75; }
-details.about-tool ul { padding-left: 1.2rem; margin: 0.3rem 0 0.5rem; }
+details.about-tool h3 { margin: var(--sp-4) 0 var(--sp-1); }
+details.about-tool ul { padding-left: 1.2rem; margin: var(--sp-1) 0 var(--sp-2); }
 
 </style>
 </head>
@@ -425,11 +272,11 @@ details.about-tool ul { padding-left: 1.2rem; margin: 0.3rem 0 0.5rem; }
         <legend>比べる 2 つの文章</legend>
         <div class="pair">
           <div class="field">
-            <div class="label-row"><label for="d-a">元の文章（A）</label><button type="button" class="btn-sub" id="d-a-file">ファイルを開く</button></div>
+            <div class="label-row"><label for="d-a">元の文章（A）</label><button type="button" class="btn" id="d-a-file">ファイルを開く</button></div>
             <textarea id="d-a" class="io" rows="7" spellcheck="false" placeholder="ここに貼り付け（ファイルのドロップも可）"></textarea>
           </div>
           <div class="field">
-            <div class="label-row"><label for="d-b">新しい文章（B）</label><button type="button" class="btn-sub" id="d-b-file">ファイルを開く</button></div>
+            <div class="label-row"><label for="d-b">新しい文章（B）</label><button type="button" class="btn" id="d-b-file">ファイルを開く</button></div>
             <textarea id="d-b" class="io" rows="7" spellcheck="false" placeholder="ここに貼り付け（ファイルのドロップも可）"></textarea>
           </div>
         </div>
@@ -450,8 +297,8 @@ details.about-tool ul { padding-left: 1.2rem; margin: 0.3rem 0 0.5rem; }
         </div>
         <div id="d-out" class="diff-out"></div>
         <div class="btn-row" id="d-actions" hidden>
-          <button type="button" class="btn-sub" id="d-copy-unified">unified 形式でコピー</button>
-          <button type="button" class="btn-sub" id="d-swap">A と B を入れ替える</button>
+          <button type="button" class="btn" id="d-copy-unified">unified 形式でコピー</button>
+          <button type="button" class="btn" id="d-swap">A と B を入れ替える</button>
         </div>
         <p class="small" id="d-msg" aria-live="polite"></p>
       </section>
@@ -480,7 +327,7 @@ details.about-tool ul { padding-left: 1.2rem; margin: 0.3rem 0 0.5rem; }
       <fieldset class="card req">
         <legend>JSON</legend>
         <div class="field">
-          <div class="label-row"><label for="j-in">整える・確かめる JSON</label><button type="button" class="btn-sub" id="j-file">ファイルを開く</button></div>
+          <div class="label-row"><label for="j-in">整える・確かめる JSON</label><button type="button" class="btn" id="j-file">ファイルを開く</button></div>
           <textarea id="j-in" class="io" rows="9" spellcheck="false" data-accept=".json,.txt,application/json,text/plain" placeholder='{"name": "山田", "id": 12345678901234567890}'></textarea>
         </div>
       </fieldset>
@@ -504,8 +351,8 @@ details.about-tool ul { padding-left: 1.2rem; margin: 0.3rem 0 0.5rem; }
         <textarea id="j-out" class="io out" rows="9" spellcheck="false" readonly></textarea>
         <div id="j-preview"></div>
         <div class="btn-row">
-          <button type="button" class="btn-sub" id="j-copy">コピー</button>
-          <button type="button" class="btn-sub" id="j-save">ファイルに保存</button>
+          <button type="button" class="btn" id="j-copy">コピー</button>
+          <button type="button" class="btn" id="j-save">ファイルに保存</button>
         </div>
         <p class="small" id="j-msg" aria-live="polite"></p>
       </section>
@@ -539,7 +386,7 @@ details.about-tool ul { padding-left: 1.2rem; margin: 0.3rem 0 0.5rem; }
       <fieldset class="card req">
         <legend>CSV</legend>
         <div class="field">
-          <div class="label-row"><label for="c-in">整える・変換する CSV</label><button type="button" class="btn-sub" id="c-file">ファイルを開く</button></div>
+          <div class="label-row"><label for="c-in">整える・変換する CSV</label><button type="button" class="btn" id="c-file">ファイルを開く</button></div>
           <textarea id="c-in" class="io" rows="9" spellcheck="false" data-accept=".csv,.tsv,.txt,text/csv,text/plain" placeholder="名前,郵便番号&#10;山田,0010001"></textarea>
         </div>
       </fieldset>
@@ -561,8 +408,8 @@ details.about-tool ul { padding-left: 1.2rem; margin: 0.3rem 0 0.5rem; }
         <label for="c-out" class="small">出力</label>
         <textarea id="c-out" class="io out" rows="8" spellcheck="false" readonly></textarea>
         <div class="btn-row">
-          <button type="button" class="btn-sub" id="c-copy">コピー</button>
-          <button type="button" class="btn-sub" id="c-save">ファイルに保存</button>
+          <button type="button" class="btn" id="c-copy">コピー</button>
+          <button type="button" class="btn" id="c-save">ファイルに保存</button>
         </div>
         <p class="small" id="c-msg" aria-live="polite"></p>
       </section>
@@ -619,7 +466,7 @@ details.about-tool ul { padding-left: 1.2rem; margin: 0.3rem 0 0.5rem; }
       <fieldset class="card req">
         <legend>変換する文章</legend>
         <div class="field">
-          <div class="label-row"><label for="k-in">文章</label><button type="button" class="btn-sub" id="k-file">ファイルを開く</button></div>
+          <div class="label-row"><label for="k-in">文章</label><button type="button" class="btn" id="k-file">ファイルを開く</button></div>
           <textarea id="k-in" class="io" rows="7" spellcheck="false" placeholder="ｶﾞｲﾄﾞﾌﾞｯｸ　ＡＢＣ－１２３"></textarea>
         </div>
         <div class="field">
@@ -647,8 +494,8 @@ details.about-tool ul { padding-left: 1.2rem; margin: 0.3rem 0 0.5rem; }
         <label for="k-out" class="small">変換した文章</label>
         <textarea id="k-out" class="io out" rows="7" spellcheck="false" readonly></textarea>
         <div class="btn-row">
-          <button type="button" class="btn-sub" id="k-copy">コピー</button>
-          <button type="button" class="btn-sub" id="k-save">ファイルに保存</button>
+          <button type="button" class="btn" id="k-copy">コピー</button>
+          <button type="button" class="btn" id="k-save">ファイルに保存</button>
         </div>
         <p class="small" id="k-msg" aria-live="polite"></p>
         <details class="rels" id="k-pairs-box" hidden>
@@ -689,7 +536,7 @@ details.about-tool ul { padding-left: 1.2rem; margin: 0.3rem 0 0.5rem; }
   <div class="btn-row">
     <button type="button" class="btn backup-export">ファイルに書き出す</button>
     <button type="button" class="btn backup-import">ファイルから読み込む</button>
-    <button type="button" class="btn btn-reset" data-reset-storage="henkan_">保存した内容をすべて消す（初期状態に戻す）</button>
+    <button type="button" class="btn" data-reset-storage="henkan_">保存した内容をすべて消す（初期状態に戻す）</button>
   </div>
   <input type="file" accept=".json,application/json" hidden>
   <p class="small backup-msg" aria-live="polite"></p>
@@ -3099,7 +2946,7 @@ self.onmessage = function (e) {
     var head2 = split ? '<colgroup><col class="n"><col><col class="n"><col></colgroup><thead><tr><th class="n">A</th><th>元の文章（A）</th><th class="n">B</th><th>新しい文章（B）</th></tr></thead>'
       : '<colgroup><col class="n"><col class="n"><col class="s"><col></colgroup><thead><tr><th class="n">A</th><th class="n">B</th><th class="s"></th><th>行</th></tr></thead>';
     var html = '<div class="diff-scroll"><table class="diff ' + (split ? 'split' : 'unified') + '">' + head2 + '<tbody>' + rows.join('') + '</tbody></table></div>';
-    if (more) html += '<p class="more"><button type="button" class="btn-sub" id="d-more">続きを表示（' + H.num(ROWS) + ' 行ずつ）</button></p>';
+    if (more) html += '<p class="more"><button type="button" class="btn" id="d-more">続きを表示（' + H.num(ROWS) + ' 行ずつ）</button></p>';
     return html;
   }
 
@@ -3200,7 +3047,7 @@ self.onmessage = function (e) {
       el.sub.textContent = e.message;
       H.showOut(el.out, '');
       if (e.line) el.err.innerHTML = '<div class="err-box">' + (e.hint ? H.esc(e.hint) : '') + '<pre>' + H.esc(around(H.val(el.input), e)) + '</pre>' +
-        '<button type="button" class="btn-sub" id="j-goto">入力欄のその位置へ</button></div>';
+        '<button type="button" class="btn" id="j-goto">入力欄のその位置へ</button></div>';
       return;
     }
     var st = last.stats, kind = { obj: 'オブジェクト', arr: '配列', str: '文字列', num: '数', lit: '値' }[st.kind];

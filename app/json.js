@@ -64,7 +64,7 @@
       el.sub.textContent = e.message;
       H.showOut(el.out, '');
       if (e.line) el.err.innerHTML = '<div class="err-box">' + (e.hint ? H.esc(e.hint) : '') + '<pre>' + H.esc(around(H.val(el.input), e)) + '</pre>' +
-        '<button type="button" class="btn-sub" id="j-goto">入力欄のその位置へ</button></div>';
+        '<button type="button" class="btn" id="j-goto">入力欄のその位置へ</button></div>';
       return;
     }
     var st = last.stats, kind = { obj: 'オブジェクト', arr: '配列', str: '文字列', num: '数', lit: '値' }[st.kind];
