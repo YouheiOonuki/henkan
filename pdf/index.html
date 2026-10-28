@@ -18,8 +18,8 @@
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="theme-color" content="#8b4513" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#1c1814" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#eef0f2" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#15191d" media="(prefers-color-scheme: dark)">
 
   <script type="application/ld+json">
   {
@@ -92,12 +92,12 @@
 
         <div id="p-pages" hidden>
           <div class="p-tools" role="toolbar" aria-label="選んだページの操作">
-            <button type="button" class="btn-sub" data-act="all">すべて選ぶ</button>
-            <button type="button" class="btn-sub" data-act="left" aria-label="選んだページを左に 90° 回す">↺ 左に 90°</button>
-            <button type="button" class="btn-sub" data-act="right" aria-label="選んだページを右に 90° 回す">↻ 右に 90°</button>
-            <button type="button" class="btn-sub" data-act="del">削除／戻す</button>
-            <button type="button" class="btn-sub" data-act="back" aria-label="選んだページを 1 つ前へ">◀ 前へ</button>
-            <button type="button" class="btn-sub" data-act="fwd" aria-label="選んだページを 1 つ後ろへ">後ろへ ▶</button>
+            <button type="button" class="btn" data-act="all">すべて選ぶ</button>
+            <button type="button" class="btn" data-act="left" aria-label="選んだページを左に 90° 回す">↺ 左に 90°</button>
+            <button type="button" class="btn" data-act="right" aria-label="選んだページを右に 90° 回す">↻ 右に 90°</button>
+            <button type="button" class="btn" data-act="del">削除／戻す</button>
+            <button type="button" class="btn" data-act="back" aria-label="選んだページを 1 つ前へ">◀ 前へ</button>
+            <button type="button" class="btn" data-act="fwd" aria-label="選んだページを 1 つ後ろへ">後ろへ ▶</button>
           </div>
           <p class="small" id="p-sel" aria-live="polite"></p>
           <ol class="p-grid" id="p-grid" aria-label="ページの一覧"></ol>
@@ -111,7 +111,7 @@
           <p class="result-sub" id="p-sub"></p>
         </div>
         <div class="btn-row">
-          <button type="button" class="btn" id="p-go" disabled>結合して保存</button>
+          <button type="button" class="btn-primary" id="p-go" disabled>結合して保存</button>
         </div>
         <p class="small" id="p-msg" aria-live="polite"></p>
         <ul class="p-outs" id="p-outs"></ul>

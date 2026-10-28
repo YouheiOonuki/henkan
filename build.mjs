@@ -89,7 +89,7 @@ ${blocks.join('\n')}
   <div class="btn-row">
     <button type="button" class="btn backup-export">ファイルに書き出す</button>
     <button type="button" class="btn backup-import">ファイルから読み込む</button>
-    <button type="button" class="btn btn-reset" data-reset-storage="henkan_">保存した内容をすべて消す（初期状態に戻す）</button>
+    <button type="button" class="btn" data-reset-storage="henkan_">保存した内容をすべて消す（初期状態に戻す）</button>
   </div>
   <input type="file" accept=".json,application/json" hidden>
   <p class="small backup-msg" aria-live="polite"></p>
