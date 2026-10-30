@@ -1,6 +1,6 @@
 {
   "id": "/henkan/",
-  "name": "テキスト変換（差分・JSON・CSV・全角半角）｜yorozu-craft",
+  "name": "テキスト変換",
   "short_name": "テキスト変換",
   "description": "テキスト差分・JSON 整形・CSV 整形・全角半角かな変換。入力は外部に送信しません。",
   "lang": "ja",
