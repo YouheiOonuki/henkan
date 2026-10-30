@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
   <!-- テキスト変換: 文書の行（同じ・削除・追加）と変換の矢印 -->
-  <rect x="4" y="4" width="56" height="56" rx="10" fill="#faf6ee" stroke="#8b4513" stroke-width="4"/>
-  <rect x="13" y="15" width="38" height="7" rx="2" fill="#8b4513"/>
+  <rect x="4" y="4" width="56" height="56" rx="10" fill="#eef0f2" stroke="#0e5a6b" stroke-width="4"/>
+  <rect x="13" y="15" width="38" height="7" rx="2" fill="#0e5a6b"/>
   <rect x="13" y="28" width="38" height="7" rx="2" fill="#d9826f"/>
   <rect x="13" y="41" width="38" height="7" rx="2" fill="#5f9a52"/>
 </svg>
