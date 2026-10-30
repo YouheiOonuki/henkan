@@ -257,6 +257,9 @@ details.card.opt.about-tool > summary { white-space: normal; }   /* 長い summa
 details.about-tool h3 { margin: var(--sp-4) 0 var(--sp-1); }
 details.about-tool ul { padding-left: 1.2rem; margin: var(--sp-1) 0 var(--sp-2); }
 
+/* 入口の下の 1 つだけ置くリンク（データの出どころ・ライセンス）も押せる高さに（入口の型 D423 の 44px） */
+.app-main > p.small > a:only-child { display: inline-flex; align-items: center; min-height: var(--tap); }
+
 </style>
 </head>
 <body>
