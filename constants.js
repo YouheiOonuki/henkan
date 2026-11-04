@@ -13,8 +13,8 @@
     CHECKED: CHECKED,
     CHECKED_PDF: CHECKED_PDF,
     SOURCES: {
-      rfc4180: { label: 'RFC 4180 Common Format and MIME Type for CSV Files（2005、Informational）2 章', url: 'https://www.rfc-editor.org/rfc/rfc4180', checked: CHECKED, used: 'lib/csv.js の囲み・「""」・改行・最後の改行' },
-      rfc8259: { label: 'RFC 8259 The JSON Data Interchange Format（2017）', url: 'https://www.rfc-editor.org/rfc/rfc8259', checked: CHECKED, used: 'lib/json.js の文法、6 章（数の精度 ±(2^53−1)）、8.1 章（BOM）' },
+      rfc4180: { label: 'RFC 4180 Common Format and MIME Type for CSV Files（2005、Informational）2 章', url: 'https://www.rfc-editor.org/info/rfc4180/', checked: CHECKED, used: 'lib/csv.js の囲み・「""」・改行・最後の改行' },
+      rfc8259: { label: 'RFC 8259 The JSON Data Interchange Format（2017）', url: 'https://www.rfc-editor.org/info/rfc8259/', checked: CHECKED, used: 'lib/json.js の文法、6 章（数の精度 ±(2^53−1)）、8.1 章（BOM）' },
       uax15: { label: 'Unicode Standard Annex #15 Unicode Normalization Forms（Revision 58、Unicode 18.0.0、2026-08-12）', url: 'https://www.unicode.org/reports/tr15/', checked: CHECKED, used: 'guide の NFKC との違い' },
       ucd: { label: 'Unicode Character Database UnicodeData.txt（18.0.0）', url: 'https://www.unicode.org/Public/UCD/latest/ucd/UnicodeData.txt', checked: CHECKED, used: 'U+FF9E <narrow> 3099、U+309B <compat> 0020 3099、U+FFE5 <wide> 00A5 など（lib/kana.js の対応表）' },
       encoding: { label: 'WHATWG Encoding Standard（Last Updated 2026-05-21）', url: 'https://encoding.spec.whatwg.org/', checked: CHECKED, used: 'lib/csv.js の decode（shift_jis。windows-31j などのラベルも同じ）' },
