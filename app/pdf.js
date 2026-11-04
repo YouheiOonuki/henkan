@@ -261,6 +261,7 @@
       if (outs.length === 1) $('p-outs').querySelector('a').click();
       $('p-msg').textContent = (outs.length === 1 ? '保存しました: ' + outs[0].name + '（' + outs[0].pages + ' ページ・' + bytes(outs[0].bytes.length) + '）。保存されないときは下の名前を押してください。'
         : outs.length + ' ファイルを作りました。1 つずつ保存するか、ZIP にまとめて保存します。') + '（' + ((Date.now() - t0) / 1000).toFixed(1) + ' 秒）';
+      window.yzUsed?.();
     }).catch(function (e) {
       $('p-msg').textContent = '作れませんでした: ' + e.message;
     }).then(function () { busy = false; summary(); });

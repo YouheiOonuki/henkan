@@ -2914,6 +2914,7 @@ self.onmessage = function (e) {
     }
     if (r.approx) notes.push('違いが多いため、途中から速さを優先して分けました。最短の分け方ではない所があります。');
     if (notes.length) el.msg.textContent = notes.join(' ');
+    window.yzUsed?.();
   }
 
   // --- 行単位の表示 ---
@@ -3074,6 +3075,7 @@ self.onmessage = function (e) {
     }
     el.notes.innerHTML = notes.map(function (n) { return '<li>' + H.esc(n) + '</li>'; }).join('');
     H.showOut(el.out, last.text);
+    window.yzUsed?.();
   }
 
   function previewTable(rows, header) {
@@ -3171,6 +3173,7 @@ self.onmessage = function (e) {
     el.notes.innerHTML = notes.map(function (n) { return '<li>' + H.esc(n) + '</li>'; }).join('');
     el.preview.innerHTML = previewTable(r.preview, maxCols);
     H.showOut(el.out, r.text);
+    window.yzUsed?.();
   }
 
   function previewTable(rows, width) {
@@ -3294,6 +3297,7 @@ self.onmessage = function (e) {
       el.pairsBox.hidden = false;
       el.pairs.innerHTML = list.slice(0, 60).map(function (k) { return '<li>' + H.esc(k) + ' ×' + H.num(last.pairs[k]) + '</li>'; }).join('') + (list.length > 60 ? '<li>ほか ' + (list.length - 60) + ' 種類</li>' : '');
     }
+    window.yzUsed?.();
   }
 
   H.attachFile(el.input, $('k-file'), function (name, enc) { update(); el.msg.textContent = name + ' を開きました' + (enc ? '（' + enc + '）' : '') + '。'; });

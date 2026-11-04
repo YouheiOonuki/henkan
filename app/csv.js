@@ -52,6 +52,7 @@
     el.notes.innerHTML = notes.map(function (n) { return '<li>' + H.esc(n) + '</li>'; }).join('');
     el.preview.innerHTML = previewTable(r.preview, maxCols);
     H.showOut(el.out, r.text);
+    window.yzUsed?.();
   }
 
   function previewTable(rows, width) {

@@ -83,6 +83,7 @@
       el.pairsBox.hidden = false;
       el.pairs.innerHTML = list.slice(0, 60).map(function (k) { return '<li>' + H.esc(k) + ' ×' + H.num(last.pairs[k]) + '</li>'; }).join('') + (list.length > 60 ? '<li>ほか ' + (list.length - 60) + ' 種類</li>' : '');
     }
+    window.yzUsed?.();
   }
 
   H.attachFile(el.input, $('k-file'), function (name, enc) { update(); el.msg.textContent = name + ' を開きました' + (enc ? '（' + enc + '）' : '') + '。'; });

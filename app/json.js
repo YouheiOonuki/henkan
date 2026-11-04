@@ -83,6 +83,7 @@
     }
     el.notes.innerHTML = notes.map(function (n) { return '<li>' + H.esc(n) + '</li>'; }).join('');
     H.showOut(el.out, last.text);
+    window.yzUsed?.();
   }
 
   function previewTable(rows, header) {
