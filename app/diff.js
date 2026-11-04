@@ -65,6 +65,7 @@
     }
     if (r.approx) notes.push('違いが多いため、途中から速さを優先して分けました。最短の分け方ではない所があります。');
     if (notes.length) el.msg.textContent = notes.join(' ');
+    window.yzUsed?.();
   }
 
   // --- 行単位の表示 ---
