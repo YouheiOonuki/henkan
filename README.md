@@ -80,8 +80,8 @@ yorozu-craft のツールの1つです（共通ルールは [youheioonuki.github
 
 | 仕様 | URL | 使った所 |
 |------|-----|---------|
-| RFC 4180（2005、Informational） | https://www.rfc-editor.org/rfc/rfc4180 | CSV の囲み・`""`・改行 |
-| RFC 8259（2017） | https://www.rfc-editor.org/rfc/rfc8259 | JSON の文法、6 章（数の精度）、8.1 章（BOM） |
+| RFC 4180（2005、Informational） | https://www.rfc-editor.org/info/rfc4180/ | CSV の囲み・`""`・改行 |
+| RFC 8259（2017） | https://www.rfc-editor.org/info/rfc8259/ | JSON の文法、6 章（数の精度）、8.1 章（BOM） |
 | UAX #15 Unicode Normalization Forms（Revision 58、Unicode 18.0.0） | https://www.unicode.org/reports/tr15/ | NFKC との違いの説明 |
 | UnicodeData.txt（18.0.0） | https://www.unicode.org/Public/UCD/latest/ucd/UnicodeData.txt | 全角・半角の分解の指定 |
 | WHATWG Encoding Standard | https://encoding.spec.whatwg.org/ | Shift_JIS の読み込み |
