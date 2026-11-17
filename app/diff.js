@@ -120,6 +120,7 @@
   H.attachFile(el.a, $('d-a-file'), function (name, enc) { el.msg.textContent = name + ' を開きました' + (enc ? '（' + enc + '）' : '') + '。'; update(); });
   H.attachFile(el.b, $('d-b-file'), function (name, enc) { el.msg.textContent = name + ' を開きました' + (enc ? '（' + enc + '）' : '') + '。'; update(); });
   el.a.addEventListener('input', later); el.b.addEventListener('input', later);
+  H.sample($('d-sample'), [el.a, el.b], window.Constants.SAMPLES.diff);
   form.addEventListener('change', function (e) {
     var t = e.target;
     if (t.name === 'd-unit') S.set({ unit: t.value });

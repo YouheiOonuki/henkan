@@ -1,8 +1,9 @@
 // ===========================
 // 変換の規則のもとにした仕様（出典と確認日）
-// 読むのは使い方 2 枚（guide.html・pdf/guide.html。CHECKED・CHECKED_PDF を「最終確認日」に描く）とテスト（tests/guide-date.test.js・site.test.js）。
-// 道具の画面は読み込まない。check-site は使い方の <script src> からこのファイルを見つけて CHECKED を読む（確認日の古さ）
-// 値そのものは lib/*.js の中（対応表・文法）。ここは「どこで確かめたか」の 1 か所
+// 読むのは使い方 2 枚（guide.html・pdf/guide.html。CHECKED・CHECKED_PDF を「最終確認日」に描く）、道具の画面 4 枚（diff・json・csv・zenkaku。SAMPLES を「見本を入れる」で欄に入れる）、
+// 1 ファイル版（build.mjs が埋め込む）とテスト（tests/guide-date.test.js・site.test.js・sample.test.js）。
+// check-site は使い方の script 要素の src からこのファイルを見つけて CHECKED を読む（確認日の古さ）
+// 変換の値そのものは lib/*.js の中（対応表・文法）。ここは「どこで確かめたか」と見本の字の 1 か所
 // ブラウザでは window.Constants、Node（テスト）では module.exports
 // ===========================
 (function (root) {
@@ -24,6 +25,13 @@
       pdf32000: { label: 'ISO 32000-1:2008（PDF 1.7。Adobe が公開している写し PDF32000_2008.pdf）7.7.3.3 Table 30 の Rotate、7.5.5 Table 15 の Encrypt、7.7.2 Table 28 の Outlines・AcroForm', url: 'https://archive.org/details/pdf320002008', checked: CHECKED_PDF, used: 'lib/pdf.js の回転（Rotate は 90 の倍数・時計回り）、暗号化の判定（trailer の Encrypt）、pdf/guide.html の「しおり・フォームは持ち込まない」' },
       pdfLib: { label: 'pdf-lib 1.17.1（MIT License、npm の dist/pdf-lib.min.js をそのまま vendor/pdf-lib/ に置いた。SHA-256 0f9a5cad…3bc694f）', url: 'https://www.npmjs.com/package/pdf-lib/v/1.17.1', checked: CHECKED_PDF, used: 'lib/pdf.js・lib/pdf-worker.js（PDF の読み書き）。ライセンスは vendor/pdf-lib/LICENSE.md と THIRD-PARTY-LICENSES.md' },
       partnerCenter: { label: 'Microsoft Learn Partner Center「Excel での CSV エンコードの問題を修正する」', url: 'https://learn.microsoft.com/ja-jp/partner-center/billing/use-the-reconciliation-files', checked: CHECKED, used: 'csv/guide.html の BOM の説明' },
+    },
+    // 「見本を入れる」で欄に入れる字（架空。保存しない。ROADMAP 7.241・Q-424）。diff は [元の文章 A, 新しい文章 B]
+    SAMPLES: {
+      csv: '品名,数,単価\nりんご,3,120\n"みかん, 小",10,45',
+      json: '{"name":"りんご","count":3,"tags":["果物","赤"]}',
+      zenkaku: 'ＡＢＣ１２３　ｶﾀｶﾅ',
+      diff: ['りんご\nみかん\nぶどう', 'りんご\nなし\nぶどう'],
     },
   };
 

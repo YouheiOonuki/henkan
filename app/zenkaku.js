@@ -88,6 +88,7 @@
 
   H.attachFile(el.input, $('k-file'), function (name, enc) { update(); el.msg.textContent = name + ' を開きました' + (enc ? '（' + enc + '）' : '') + '。'; });
   el.input.addEventListener('input', later);
+  H.sample($('k-sample'), [el.input], [window.Constants.SAMPLES.zenkaku]);
   form.addEventListener('change', function (e) {
     var t = e.target, id = t.id.replace(/^k-/, '');
     if (t.id === 'k-preset') S.set({ preset: t.value });

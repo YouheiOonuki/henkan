@@ -10,7 +10,7 @@
 'use strict';
 
 const CACHE_PREFIX = 'henkan-';
-const CACHE_NAME   = `${CACHE_PREFIX}v3`; // キャッシュする中身の構成を変えたら上げる
+const CACHE_NAME   = `${CACHE_PREFIX}v4`; // キャッシュする中身の構成を変えたら上げる
 
 /** 初回インストール時に取得しておくファイル */
 const PRECACHE_URLS = [

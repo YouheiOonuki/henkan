@@ -105,6 +105,7 @@
       textarea._rawWired = true;
       textarea.addEventListener('input', function () { raws.delete(textarea); textarea.placeholder = textarea._ph; });
     }
+    if (textarea._onSet) textarea._onSet();
   }
   /** 入力欄の中身（開いたファイルならその改行のまま） */
   function val(textarea) { return raws.has(textarea) ? raws.get(textarea) : textarea.value; }
@@ -135,6 +136,18 @@
       e.preventDefault(); textarea.classList.remove('drop');
       take(e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]);
     });
+  }
+
+  /** 「見本を入れる」: 欄がどれも空のときだけ押せる（入っている字を置き換えない）。押すと見本を入れ、input を起こして今の動きで結果を出す。見本は保存しない */
+  function sample(button, textareas, texts) {
+    if (!button) return;
+    function refresh() { button.disabled = textareas.some(function (t) { return val(t) !== ''; }); }
+    textareas.forEach(function (t) { t.addEventListener('input', refresh); t._onSet = refresh; });
+    button.addEventListener('click', function () {
+      if (button.disabled) return;
+      textareas.forEach(function (t, i) { t.value = texts[i]; t.dispatchEvent(new Event('input', { bubbles: true })); });
+    });
+    refresh();
   }
 
   /** 文字をファイルとして保存する（この端末の中で作るだけ） */
@@ -189,6 +202,6 @@
 
   root.Henkan = {
     settings: settings, runner: runner, debounce: debounce, waitFor: waitFor, esc: esc, num: num, size: size,
-    attachFile: attachFile, val: val, showOut: showOut, setRaw: setRaw, download: download, copy: copy, wireBackup: wireBackup, backupFileName: backupFileName,
+    attachFile: attachFile, val: val, showOut: showOut, setRaw: setRaw, sample: sample, download: download, copy: copy, wireBackup: wireBackup, backupFileName: backupFileName,
   };
 })(typeof window !== 'undefined' ? window : this);

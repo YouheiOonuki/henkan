@@ -86,6 +86,7 @@
     H.download(rawOut(), json ? 'data.json' : tsv ? 'data.tsv' : 'data.csv', json ? 'application/json' : 'text/csv', !json && s.bom);
     el.msg.textContent = !json && s.bom ? 'BOM 付きの UTF-8 で保存しました（Excel でそのまま開けます）。' : 'UTF-8 で保存しました。';
   });
+  H.sample($('c-sample'), [el.input], [window.Constants.SAMPLES.csv]);
   applySettings();
   if (H.val(el.input)) update();
 })();
