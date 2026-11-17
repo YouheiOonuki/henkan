@@ -1,5 +1,7 @@
 // ===========================
-// 変換の規則のもとにした仕様（出典と確認日）。check-site の古さチェックが CHECKED を読む
+// 変換の規則のもとにした仕様（出典と確認日）
+// 読むのは使い方 2 枚（guide.html・pdf/guide.html。CHECKED・CHECKED_PDF を「最終確認日」に描く）とテスト（tests/guide-date.test.js・site.test.js）。
+// 道具の画面は読み込まない。check-site は使い方の <script src> からこのファイルを見つけて CHECKED を読む（確認日の古さ）
 // 値そのものは lib/*.js の中（対応表・文法）。ここは「どこで確かめたか」の 1 か所
 // ブラウザでは window.Constants、Node（テスト）では module.exports
 // ===========================
