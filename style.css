@@ -174,6 +174,7 @@ textarea.io.drop { outline: 3px dashed var(--accent); }
 .pair { display: grid; gap: 0 var(--sp-4); }
 @media (min-width: 760px) { .pair { grid-template-columns: 1fr 1fr; } }
 .pair .field { margin-bottom: var(--sp-3); }
+.sample-btn { margin-top: var(--sp-2); }   /* 「見本を入れる」（入力の欄のすぐ下） */
 .label-row { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); margin-bottom: var(--sp-1); }
 .label-row label { margin: 0 !important; }
 fieldset.plain { border: none; margin: 0 0 var(--sp-3); min-width: 0; }

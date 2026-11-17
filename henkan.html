@@ -185,6 +185,7 @@ textarea.io.drop { outline: 3px dashed var(--accent); }
 .pair { display: grid; gap: 0 var(--sp-4); }
 @media (min-width: 760px) { .pair { grid-template-columns: 1fr 1fr; } }
 .pair .field { margin-bottom: var(--sp-3); }
+.sample-btn { margin-top: var(--sp-2); }   /* 「見本を入れる」（入力の欄のすぐ下） */
 .label-row { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); margin-bottom: var(--sp-1); }
 .label-row label { margin: 0 !important; }
 fieldset.plain { border: none; margin: 0 0 var(--sp-3); min-width: 0; }
@@ -288,6 +289,7 @@ details.about-tool ul { padding-left: 1.2rem; margin: var(--sp-1) 0 var(--sp-2);
             <textarea id="d-b" class="io" rows="7" spellcheck="false" placeholder="ここに貼り付け（ファイルのドロップも可）"></textarea>
           </div>
         </div>
+        <button type="button" class="btn sample-btn" id="d-sample">見本を入れる</button>
       </fieldset>
 
       <section class="card result-card" id="d-result" tabindex="-1" aria-labelledby="d-h-result">
@@ -337,6 +339,7 @@ details.about-tool ul { padding-left: 1.2rem; margin: var(--sp-1) 0 var(--sp-2);
         <div class="field">
           <div class="label-row"><label for="j-in">整える・確かめる JSON</label><button type="button" class="btn" id="j-file">ファイルを開く</button></div>
           <textarea id="j-in" class="io" rows="9" spellcheck="false" data-accept=".json,.txt,application/json,text/plain" placeholder='{"name": "山田", "id": 12345678901234567890}'></textarea>
+          <button type="button" class="btn sample-btn" id="j-sample">見本を入れる</button>
         </div>
       </fieldset>
 
@@ -396,6 +399,7 @@ details.about-tool ul { padding-left: 1.2rem; margin: var(--sp-1) 0 var(--sp-2);
         <div class="field">
           <div class="label-row"><label for="c-in">整える・変換する CSV</label><button type="button" class="btn" id="c-file">ファイルを開く</button></div>
           <textarea id="c-in" class="io" rows="9" spellcheck="false" data-accept=".csv,.tsv,.txt,text/csv,text/plain" placeholder="名前,郵便番号&#10;山田,0010001"></textarea>
+          <button type="button" class="btn sample-btn" id="c-sample">見本を入れる</button>
         </div>
       </fieldset>
 
@@ -476,6 +480,7 @@ details.about-tool ul { padding-left: 1.2rem; margin: var(--sp-1) 0 var(--sp-2);
         <div class="field">
           <div class="label-row"><label for="k-in">文章</label><button type="button" class="btn" id="k-file">ファイルを開く</button></div>
           <textarea id="k-in" class="io" rows="7" spellcheck="false" placeholder="ｶﾞｲﾄﾞﾌﾞｯｸ　ＡＢＣ－１２３"></textarea>
+          <button type="button" class="btn sample-btn" id="k-sample">見本を入れる</button>
         </div>
         <div class="field">
           <label for="k-preset">変換のしかた</label>
@@ -1572,6 +1577,8 @@ self.onmessage = function (e) {
 
 </script>
 <script>
+// ---- constants.js の SAMPLES（見本を入れる） ----
+window.Constants = { SAMPLES: {"csv":"品名,数,単価\nりんご,3,120\n\"みかん, 小\",10,45","json":"{\"name\":\"りんご\",\"count\":3,\"tags\":[\"果物\",\"赤\"]}","zenkaku":"ＡＢＣ１２３　ｶﾀｶﾅ","diff":["りんご\nみかん\nぶどう","りんご\nなし\nぶどう"]} };
 // ---- lib/kana.js ----
 // ===========================
 // 全角・半角・かなの変換（画面から切り離した純粋関数。DOM に触らない）
@@ -2758,6 +2765,7 @@ self.onmessage = function (e) {
       textarea._rawWired = true;
       textarea.addEventListener('input', function () { raws.delete(textarea); textarea.placeholder = textarea._ph; });
     }
+    if (textarea._onSet) textarea._onSet();
   }
   /** 入力欄の中身（開いたファイルならその改行のまま） */
   function val(textarea) { return raws.has(textarea) ? raws.get(textarea) : textarea.value; }
@@ -2788,6 +2796,18 @@ self.onmessage = function (e) {
       e.preventDefault(); textarea.classList.remove('drop');
       take(e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]);
     });
+  }
+
+  /** 「見本を入れる」: 欄がどれも空のときだけ押せる（入っている字を置き換えない）。押すと見本を入れ、input を起こして今の動きで結果を出す。見本は保存しない */
+  function sample(button, textareas, texts) {
+    if (!button) return;
+    function refresh() { button.disabled = textareas.some(function (t) { return val(t) !== ''; }); }
+    textareas.forEach(function (t) { t.addEventListener('input', refresh); t._onSet = refresh; });
+    button.addEventListener('click', function () {
+      if (button.disabled) return;
+      textareas.forEach(function (t, i) { t.value = texts[i]; t.dispatchEvent(new Event('input', { bubbles: true })); });
+    });
+    refresh();
   }
 
   /** 文字をファイルとして保存する（この端末の中で作るだけ） */
@@ -2842,7 +2862,7 @@ self.onmessage = function (e) {
 
   root.Henkan = {
     settings: settings, runner: runner, debounce: debounce, waitFor: waitFor, esc: esc, num: num, size: size,
-    attachFile: attachFile, val: val, showOut: showOut, setRaw: setRaw, download: download, copy: copy, wireBackup: wireBackup, backupFileName: backupFileName,
+    attachFile: attachFile, val: val, showOut: showOut, setRaw: setRaw, sample: sample, download: download, copy: copy, wireBackup: wireBackup, backupFileName: backupFileName,
   };
 })(typeof window !== 'undefined' ? window : this);
 
@@ -2969,6 +2989,7 @@ self.onmessage = function (e) {
   H.attachFile(el.a, $('d-a-file'), function (name, enc) { el.msg.textContent = name + ' を開きました' + (enc ? '（' + enc + '）' : '') + '。'; update(); });
   H.attachFile(el.b, $('d-b-file'), function (name, enc) { el.msg.textContent = name + ' を開きました' + (enc ? '（' + enc + '）' : '') + '。'; update(); });
   el.a.addEventListener('input', later); el.b.addEventListener('input', later);
+  H.sample($('d-sample'), [el.a, el.b], window.Constants.SAMPLES.diff);
   form.addEventListener('change', function (e) {
     var t = e.target;
     if (t.name === 'd-unit') S.set({ unit: t.value });
@@ -3089,6 +3110,7 @@ self.onmessage = function (e) {
 
   H.attachFile(el.input, $('j-file'), function (name, enc) { update(); el.msg.textContent = name + ' を開きました' + (enc ? '（' + enc + '）' : '') + '。'; });
   el.input.addEventListener('input', later);
+  H.sample($('j-sample'), [el.input], [window.Constants.SAMPLES.json]);
   form.addEventListener('change', function (e) {
     var t = e.target;
     if (t.name === 'j-mode') S.set({ mode: t.value });
@@ -3207,6 +3229,7 @@ self.onmessage = function (e) {
     H.download(rawOut(), json ? 'data.json' : tsv ? 'data.tsv' : 'data.csv', json ? 'application/json' : 'text/csv', !json && s.bom);
     el.msg.textContent = !json && s.bom ? 'BOM 付きの UTF-8 で保存しました（Excel でそのまま開けます）。' : 'UTF-8 で保存しました。';
   });
+  H.sample($('c-sample'), [el.input], [window.Constants.SAMPLES.csv]);
   applySettings();
   if (H.val(el.input)) update();
 })();
@@ -3302,6 +3325,7 @@ self.onmessage = function (e) {
 
   H.attachFile(el.input, $('k-file'), function (name, enc) { update(); el.msg.textContent = name + ' を開きました' + (enc ? '（' + enc + '）' : '') + '。'; });
   el.input.addEventListener('input', later);
+  H.sample($('k-sample'), [el.input], [window.Constants.SAMPLES.zenkaku]);
   form.addEventListener('change', function (e) {
     var t = e.target, id = t.id.replace(/^k-/, '');
     if (t.id === 'k-preset') S.set({ preset: t.value });

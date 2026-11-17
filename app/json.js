@@ -97,6 +97,7 @@
 
   H.attachFile(el.input, $('j-file'), function (name, enc) { update(); el.msg.textContent = name + ' を開きました' + (enc ? '（' + enc + '）' : '') + '。'; });
   el.input.addEventListener('input', later);
+  H.sample($('j-sample'), [el.input], [window.Constants.SAMPLES.json]);
   form.addEventListener('change', function (e) {
     var t = e.target;
     if (t.name === 'j-mode') S.set({ mode: t.value });

@@ -1,11 +1,12 @@
 // 通信しない 1 ファイル版（henkan.html）を作る: node build.mjs
 // - 4 つの道具のページ（diff/ json/ csv/ zenkaku/ の index.html）から <!-- TOOL-BEGIN … --> 〜 <!-- TOOL-END --> を取り出し、タブで並べる
-// - style.css・lib/*.js・app/*.js・reset-storage.js を埋め込む。Worker は lib/*.js と lib/worker.js をつなげた文字列を Blob にする
+// - style.css・lib/*.js・app/*.js・reset-storage.js を埋め込む。constants.js からは見本の字（SAMPLES）だけを window.Constants に入れる（出典の表は使い方のもので、1 ファイル版には要らない）。Worker は lib/*.js と lib/worker.js をつなげた文字列を Blob にする
 // - 外部への通信は CSP で禁止（connect-src 'none'）。広告・アクセス解析は入れない
 // 依存パッケージなし。同じ入力なら同じ henkan.html になる（tests/site.test.js が確かめる）
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createRequire } from 'node:module';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const read = (p) => fs.readFileSync(path.join(ROOT, p), 'utf8');
@@ -32,7 +33,8 @@ export function build() {
     return `<section class="tab-panel" id="tab-${t.key}" role="tabpanel" aria-labelledby="tabbtn-${t.key}"${t.key === 'diff' ? '' : ' hidden'}>\n${m[1]}</section>`;
   });
   const worker = LIBS.concat(['lib/worker.js']).map((p) => `// ---- ${p} ----\n` + read(p)).join('\n');
-  const code = LIBS.concat(APPS).map((p) => `// ---- ${p} ----\n` + read(p)).join('\n');
+  const samples = createRequire(import.meta.url)('./constants.js').SAMPLES;
+  const code = `// ---- constants.js の SAMPLES（見本を入れる） ----\nwindow.Constants = { SAMPLES: ${JSON.stringify(samples)} };\n` + LIBS.concat(APPS).map((p) => `// ---- ${p} ----\n` + read(p)).join('\n');
   const tabs = `
 // ---- タブ（1 ファイル版だけ）。選んだタブは # に入れる（保存しない） ----
 (function () {

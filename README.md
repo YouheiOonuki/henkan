@@ -116,7 +116,7 @@ node --test tests/*.test.js
 - `build.mjs` は `diff/ json/ csv/ zenkaku/` の `index.html` から `<!-- TOOL-BEGIN … -->`〜`<!-- TOOL-END -->` を取り出し、`style.css`・`lib/*.js`・`app/*.js`・`reset-storage.js` を埋め込む。Worker は `lib/*.js` と `lib/worker.js` をつなげた `<script type="text/plain">` を Blob にする。CSP `default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; worker-src blob:; connect-src 'none'`
 - ツールのブロックの中に相対リンクを書かない（1 ファイル版で切れる。ビルドが止まる）
 - **`lib/`・`app/`・`style.css`・ツールのページを直したら `node build.mjs` して `henkan.html` も一緒にコミットする**（`tests/site.test.js` が一致を確かめる）。サイズが ±15KB 変わったら `index.html` の「約 ○KB」も直す
-- テスト: 差分（乱数 2000 組で最短＝最長共通部分列の長さと一致・B に戻せる、GNU diff -u との一致、端の場合、無視の選択、6 万行 3 秒以内、全部違う 2 万行、近似で止まる）、JSON（JSON.parse と同じ受け入れ・拒否、誤りの行・列、数の保持、整形、表）、CSV（RFC 4180 の例、崩れた CSV、区切りの判定、往復 500 表、JSON、Shift_JIS）、全角半角（濁点、往復、対応表の外、ひらがな、整理、NFKC）、サイト（1 ファイル版の一致・通信なし、ページのリンク、sitemap・sw.js）、消すボタン、PDF（範囲の書き方、結合の順、分割、回転〔受け継いだ Rotate も〕、文書情報を残さない、しおり・フォーム、暗号化・壊れた PDF、ZIP、pdf-lib のハッシュ、1 ファイル版に pdf-lib が無いこと、遅延読み込み）
+- テスト: 差分（乱数 2000 組で最短＝最長共通部分列の長さと一致・B に戻せる、GNU diff -u との一致、端の場合、無視の選択、6 万行 3 秒以内、全部違う 2 万行、近似で止まる）、JSON（JSON.parse と同じ受け入れ・拒否、誤りの行・列、数の保持、整形、表）、CSV（RFC 4180 の例、崩れた CSV、区切りの判定、往復 500 表、JSON、Shift_JIS）、全角半角（濁点、往復、対応表の外、ひらがな、整理、NFKC）、サイト（1 ファイル版の一致・通信なし、ページのリンク、sitemap・sw.js）、消すボタン、見本を入れる（見本の結果。4 画面と 1 ファイル版で押す分は Playwright があるときだけ）、PDF（範囲の書き方、結合の順、分割、回転〔受け継いだ Rotate も〕、文書情報を残さない、しおり・フォーム、暗号化・壊れた PDF、ZIP、pdf-lib のハッシュ、1 ファイル版に pdf-lib が無いこと、遅延読み込み）
 
 ## 保守
 
