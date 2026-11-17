@@ -2,7 +2,7 @@
 // - 4 つの道具のページ（diff/ json/ csv/ zenkaku/ の index.html）から <!-- TOOL-BEGIN … --> 〜 <!-- TOOL-END --> を取り出し、タブで並べる
 // - style.css・lib/*.js・app/*.js・reset-storage.js を埋め込む。Worker は lib/*.js と lib/worker.js をつなげた文字列を Blob にする
 // - 外部への通信は CSP で禁止（connect-src 'none'）。広告・アクセス解析は入れない
-// 依存パッケージなし。同じ入力なら同じ henkan.html になる（tests/build.test.js が確かめる）
+// 依存パッケージなし。同じ入力なら同じ henkan.html になる（tests/site.test.js が確かめる）
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
