@@ -58,7 +58,7 @@
 
     <article class="card content" id="sources">
       <h2>データの出どころとライセンス</h2>
-      <p>変換の規則は、次の公開の仕様から作りました（最終確認日 2026-09-25。PDF は 2026-10-01）。外部のライブラリは PDF のページの pdf-lib だけです。</p>
+      <p>変換の規則は、次の公開の仕様から作りました（最終確認日 <time datetime="" id="checked"></time>。PDF は <time datetime="" id="checked-pdf"></time>）。外部のライブラリは PDF のページの pdf-lib だけです。</p>
       <details>
         <summary>仕様と確かめたこと</summary>
         <ul>
@@ -102,6 +102,7 @@
     <article class="card content" id="changelog">
       <h2>更新履歴</h2>
       <ul>
+        <li><time datetime="2026-11-18">2026年11月18日</time> 確認日を出典の記録から出すようにした</li>
         <li><time datetime="2026-11-04">2026年11月4日</time> RFC 4180・8259 へのリンクを今の URL に直した</li>
         <li><time datetime="2026-10-10">2026年10月10日</time> pdf-lib のライセンスへのリンクを、このサイトの中のファイルにした</li>
         <li><time datetime="2026-10-01">2026年10月1日</time> PDF 結合・分割・回転を追加</li>
@@ -124,6 +125,17 @@
     <p>&copy; 2026 yorozu-craft. All rights reserved.</p>
   </footer>
 
+  <script src="./constants.js"></script>
+  <script>
+    // 最終確認日は constants.js から出す（日付の控えを HTML に持たない）
+    (function () {
+      var K = window.Constants;
+      [['checked', K.CHECKED], ['checked-pdf', K.CHECKED_PDF]].forEach(function (x) {
+        var t = document.getElementById(x[0]);
+        if (t) { t.dateTime = x[1]; t.textContent = x[1]; }
+      });
+    })();
+  </script>
   <!-- Cloudflare Web Analytics（Cookie を使わないアクセス解析） --><script type='module' src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "b79bf821e1fd4b6683866d493b1de426"}'></script><!-- End Cloudflare Web Analytics -->
 </body>
 </html>

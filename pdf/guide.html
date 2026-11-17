@@ -93,7 +93,7 @@
           <li>回転: ページの Rotate（時計回り、90 の倍数）を書き換えます。中身の画像や文字は作り直しません</li>
           <li>新しい PDF に写すので、元の文書情報（タイトル・作成者など）・しおり・フォームの設定は持ち込みません。文書情報は「くわしい設定」で残せます</li>
         </ul>
-        <p>根拠: ISO 32000-1:2008（PDF 1.7）7.7.3.3 Table 30（Rotate）、7.5.5 Table 15（Encrypt）、7.7.2 Table 28（Outlines・AcroForm）。最終確認日 2026-10-01。</p>
+        <p>根拠: ISO 32000-1:2008（PDF 1.7）7.7.3.3 Table 30（Rotate）、7.5.5 Table 15（Encrypt）、7.7.2 Table 28（Outlines・AcroForm）。最終確認日 <time datetime="" id="checked-pdf"></time>。</p>
       </details>
     </article>
 
@@ -137,6 +137,7 @@
     <article class="card content" id="changelog">
       <h2>更新履歴</h2>
       <ul>
+        <li><time datetime="2026-11-18">2026年11月18日</time> 確認日を出典の記録から出すようにした</li>
         <li><time datetime="2026-10-14">2026年10月14日</time> パスワード付きの PDF の答えの言い回しを直した</li>
         <li><time datetime="2026-10-01">2026年10月1日</time> 公開</li>
       </ul>
@@ -158,6 +159,17 @@
     <p>&copy; 2026 yorozu-craft. All rights reserved.</p>
   </footer>
 
+  <script src="../constants.js"></script>
+  <script>
+    // 最終確認日は constants.js から出す（日付の控えを HTML に持たない）
+    (function () {
+      var K = window.Constants;
+      [['checked', K.CHECKED], ['checked-pdf', K.CHECKED_PDF]].forEach(function (x) {
+        var t = document.getElementById(x[0]);
+        if (t) { t.dateTime = x[1]; t.textContent = x[1]; }
+      });
+    })();
+  </script>
   <!-- Cloudflare Web Analytics（Cookie を使わないアクセス解析） --><script type='module' src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "b79bf821e1fd4b6683866d493b1de426"}'></script><!-- End Cloudflare Web Analytics -->
 </body>
 </html>
