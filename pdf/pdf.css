@@ -13,9 +13,9 @@
 .p-fname .p-name { overflow-wrap: anywhere; font-size: 0.92rem; }
 .p-fname .small { margin: 0; }
 .p-err { font-size: 0.82rem; color: var(--text); background: var(--del-bg); border-radius: 4px; padding: 0.15rem 0.4rem; }
-.p-fbtn { flex: none; display: flex; gap: 0.3rem; }
+.p-fbtn { flex: none; display: flex; gap: 0.5rem; }
 .p-fbtn .btn, .p-tools .btn { min-width: 44px; min-height: 44px; justify-content: center; }
-.p-tools { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0.8rem 0 0.2rem; }
+.p-tools { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0.8rem 0 0.2rem; }
 .p-grid { max-height: 60vh; overflow-y: auto; padding: 2px; list-style: none; margin: 0.6rem 0 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 0.5rem; }
 .p-grid li { display: flex; }
 .p-page { width: 100%; min-height: 96px; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 0.15rem; padding: 0.35rem 0.2rem; font: inherit; color: var(--text); background: var(--bg); border: 2px solid var(--border); border-radius: var(--radius); cursor: pointer; }
