@@ -2847,9 +2847,9 @@ window.Constants = { SAMPLES: {"csv":"品名,数,単価\nりんご,3,120\n\"み�
         var o = null;
         try { o = JSON.parse(text); } catch (e) { o = null; }
         if (!o || typeof o !== 'object' || o.tool !== TOOL) { msg.textContent = o && typeof o.tool === 'string' ? 'ほかのツール（' + String(o.tool).slice(0, 40) + '）のファイルです。' : 'ファイルを読み取れませんでした。このツールの「ファイルに書き出す」で作った .json ファイルを選んでください。'; return; }
-        if (o.version !== BACKUP_VERSION) { msg.textContent = 'ファイルの形式が正しくないため読み込めません。'; return; }
+        if (o.version !== BACKUP_VERSION) { msg.textContent = 'ファイルの形式が正しくないため読み込めません。この道具の「ファイルに書き出す」で保存したファイルを選んでください。'; return; }
         var s = o.data && o.data.settings;
-        if (!s || typeof s !== 'object' || Array.isArray(s)) { msg.textContent = 'ファイルの中身が足りないため読み込めません。'; return; }
+        if (!s || typeof s !== 'object' || Array.isArray(s)) { msg.textContent = 'ファイルの中身が足りないため読み込めません。この道具の「ファイルに書き出す」で保存したファイルを選んでください。'; return; }
         if (!root.confirm('ファイルの設定で、今の設定を置き換えます。よろしいですか？')) return;
         var clean = {};
         ['diff', 'json', 'csv', 'kana'].forEach(function (k) { if (s[k] && typeof s[k] === 'object' && !Array.isArray(s[k])) clean[k] = s[k]; });
