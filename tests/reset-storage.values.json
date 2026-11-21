@@ -1,0 +1,13 @@
+{
+  "src": "reset-storage.js",
+  "prefixes": [
+    "henkan_"
+  ],
+  "legacy": [],
+  "pagePrefixes": {},
+  "pageLegacy": {},
+  "inline": [
+    "henkan.html"
+  ],
+  "skipDirs": []
+}
