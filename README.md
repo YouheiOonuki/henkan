@@ -57,7 +57,7 @@ yorozu-craft のツールの1つです（共通ルールは [youheioonuki.github
 - 暗号化（trailer の `/Encrypt`。開くパスワードも、編集の制限だけのものも）は pdf-lib では正しく書き出せないので、読まずに知らせる（`ignoreEncryption: true` で開いて `isEncrypted` を見る）
 - 大きさの目安: 合計 100MB を超えたら知らせる（止めない）。pdf-lib はファイル全体をメモリに読み、書き出しでもう 1 つ作る。84MB × 2 の結合は Playwright の Chromium（PC）で読み込み約 1.4 秒・結合と保存約 5.4 秒（2026-10-01）
 - ページの縮小画像は出さない（pdf.js が要り、さらに 1MB 以上）。代わりに、ページの縦横と向きを形と矢印で出す
-- 何も保存しない（localStorage を使わない）ので、K123 の消すボタンは置かない
+- PDF のページは何も保存しない（`app/common.js` を読まず、4 つの道具の設定を持つ `henkan_settings` にも触らない。選んだ PDF はページを閉じると消える）ので、K123 の消すボタンは置かない（保存の全体は「保存」の節）
 - ZIP は自前（無圧縮、名前は UTF-8 のフラグ。PKWARE の APPNOTE の形）
 
 ### 全角・半角・かな（`lib/kana.js`）の対応表
