@@ -58,7 +58,12 @@ test('sitemap と sw.js の一覧がページ・ファイルとそろってい�
   for (const p of PAGES) assert.ok(sm.includes('https://yorozu-craft.com/henkan/' + p.replace(/index\.html$/, '') + '</loc>'), p);
   const sw = read('sw.js');
   assert.match(sw, /const CACHE_PREFIX = 'henkan-';/);
-  for (const m of sw.matchAll(/'\.\/([^']*)'/g)) {
+  // 一覧は枠の外の PRECACHE_URLS だけ（枠の中の字は読まない。D1137）
+  const start = sw.indexOf('const PRECACHE_URLS = [');
+  const list = sw.slice(start, sw.indexOf('];', start));
+  const items = [...list.matchAll(/'\.\/([^']*)'/g)];
+  assert.ok(start >= 0 && items.length >= 1, 'PRECACHE_URLS の一覧が取れる');
+  for (const m of items) {
     const f = m[1] === '' || m[1].endsWith('/') ? path.join(ROOT, m[1], 'index.html') : path.join(ROOT, m[1]);
     assert.ok(fs.existsSync(f), 'sw.js の ' + m[1]);
   }
