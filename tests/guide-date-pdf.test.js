@@ -1,3 +1,4 @@
+// 名前を guide-date.test.js から変えた（2026-11-27）: 共通の本体（root の tools/common/guide-date.test.js）は「ページ → 値 1 つ」で比べるが、henkan は「script が CHECKED と CHECKED_PDF の 2 つを ISO のまま描く」ので比べるので、repo だけの型として残す。
 // 使い方の「最終確認日」が constants.js の CHECKED・CHECKED_PDF から出ていて、手で書いた控えが無いか（Q-275、Q-350。otasuke の tests/guide-date.test.js と同じ目的）。
 // 使い方は日付を HTML に持たず、末尾の script が constants.js の日付を #checked・#checked-pdf に描く（正は 1 か所。loan-sim の guide-date.test.js と同じ形）。
 // なので比べるのは (1) HTML に手書きの日付が無く、描く先の <time> が空か、(2) script を動かすと constants.js の日付がそのまま出るか。
